@@ -42,24 +42,50 @@ export class AnthropicService {
   }
 
   async parseStatementText(text: string): Promise<ParsedStatement> {
-    this.logger.log(`Parsing statement text: ${text}`);
+    this.logger.log(`Parsing statement text...`);
     
-    const prompt = `Parse credit card statement. Extract ALL expenses (~47 total) as JSON.
+    const prompt = `Parse Argentine credit card statement. Extract ALL expenses as JSON.
 
-OUTPUT: {"expenses":[{"description":"str","amount_ars":num|null,"amount_usd":num|null,"current_installment":num|null,"total_installments":num|null,"card_identifier":"str"|null,"purchase_date":"YYYY-MM-DD"|null}],"summary":{"total_ars":num|null,"total_usd":num|null,"due_date":"YYYY-MM-DD"|null,"statement_date":"YYYY-MM-DD"|null}}
+OUTPUT FORMAT:
+{"expenses":[{"description":"str","amount_ars":num|null,"amount_usd":num|null,"current_installment":num|null,"total_installments":num|null,"card_identifier":"str"|null,"purchase_date":"YYYY-MM-DD"|null}],"summary":{"total_ars":num|null,"total_usd":num|null,"due_date":"YYYY-MM-DD"|null,"statement_date":"YYYY-MM-DD"|null}}
 
-CARD ASSIGNMENT - card = NEXT Tarjeta's number:
-Line: PROVINCIA COMPRAS...  → card="2898" (next Tarjeta is 2898)
-Line: Tarjeta 2898 Total    → SKIP
-Line: OLIVIA...             → card="7070" (next Tarjeta is 7070)
-Line: Tarjeta 7070 Total    → SKIP
-Line: DLO*PRET...           → card="8375" (next Tarjeta is 8375)
-Line: Tarjeta 8375 Total    → SKIP
-Line: IMPUESTO DE SELLOS    → card=null (no more Tarjeta lines after this)
+PARSING RULES:
 
-Extract ALL expenses from document, not just examples. Include IMPUESTO DE SELLOS with card=null.
-IMPORTANT: Sum of all expense amounts MUST equal the statement total. If sum doesn't match, you're missing expenses.
-Rules: Cuota XX/YY=installments. 1.959.370,09=1959370.09. 16.08.25=2025-08-16. JSON only.
+1. CARD/ACCOUNT IDENTIFICATION:
+   - Look for account/card info: "cuenta XXXXXXXXXX", "Tarjeta XXXX", or similar
+   - Extract last 4 digits as card_identifier (e.g., "cuenta 0894140651" → "0651")
+   - If multiple cards: "Tarjeta XXXX" sections → use those 4 digits for expenses in that section
+   - If single account (CONSOLIDADO): use the account's last 4 digits for all consumptions
+   - Tax/fee items (IIBB, IVA, IMPUESTO DE SELLOS) → card_identifier=null
+
+2. DATE FORMATS (convert all to YYYY-MM-DD):
+   - DD.MM.YY → 16.08.25 = 2025-08-16
+   - DD-Mmm-YY or "DD Mmm YY" → parse day, month, year exactly as shown
+   - Spanish months: Ene=01, Feb=02, Mar=03, Abr=04, May=05, Jun=06, Jul=07, Ago=08, Sep=09, Oct=10, Nov=11, Dic=12
+   - CRITICAL: Parse dates EXACTLY - "24 Dic 25" = 2025-12-24 (day=24), "05 Ene 26" = 2026-01-05 (day=05)
+   - For due_date/statement_date, look for "CIERRE ACTUAL", "VENCIMIENTO", "VENCIMIENTO ACTUAL" fields
+
+3. INSTALLMENTS:
+   - "Cuota XX/YY" or "C.XX/YY" → current_installment=XX, total_installments=YY
+   - No installment info → both fields null
+
+4. AMOUNTS:
+   - Number format: 1.959.370,09 = 1959370.09 (dots=thousands, comma=decimal)
+   - USD in description (e.g., "DIGITALOCEAN.COM USD 12,00") → amount_usd=12.00, amount_ars=null
+   - Negative amounts (refunds/credits) → preserve as negative
+   - Separate PESOS/DÓLARES columns → use appropriate field
+
+5. SKIP THESE LINES:
+   - Payment lines: "SU PAGO EN PESOS", "SU PAGO EN USD"
+   - Balance lines: "SALDO ANTERIOR", "SALDO ACTUAL"
+   - Subtotal lines: "Tarjeta XXXX Total", "TOTAL CONSUMOS DE..."
+   - Credit adjustments: "CR.RG..."
+
+6. INCLUDE:
+   - All individual expense/purchase lines
+   - Tax items: IMPUESTO DE SELLOS, IIBB, IVA, DB.RG (as separate expenses with card_identifier=null)
+
+IMPORTANT: Sum of extracted amounts must match statement total. Extract ALL expenses. JSON only.
 
 ${text}`;
 
@@ -75,10 +101,8 @@ ${text}`;
         ],
       });
 
-      // Log response details for debugging
       this.logger.log(`Response stop_reason: ${response.stop_reason}, usage: ${JSON.stringify(response.usage)}`);
 
-      // Check if response was truncated
       if (response.stop_reason === 'max_tokens') {
         this.logger.warn('Response was truncated due to max_tokens limit - some expenses may be missing!');
       }
@@ -89,8 +113,6 @@ ${text}`;
       }
 
       const responseText = content.text;
-
-      // Extract JSON from response
       let jsonStr = responseText;
       const codeBlockMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (codeBlockMatch) {

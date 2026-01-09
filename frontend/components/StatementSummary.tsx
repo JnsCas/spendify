@@ -2,6 +2,12 @@
 
 import { useMemo } from 'react'
 
+// Format date string (YYYY-MM-DD) without timezone conversion issues
+function formatDateString(dateStr: string): string {
+  const [year, month, day] = dateStr.split('T')[0].split('-').map(Number)
+  return new Date(year, month - 1, day).toLocaleDateString()
+}
+
 interface Expense {
   amountArs: number | null
   amountUsd: number | null
@@ -80,11 +86,11 @@ export default function StatementSummary({
       <div className="bg-white p-6 rounded-lg shadow">
         <h3 className="text-sm text-gray-500 uppercase">Due Date</h3>
         <p className="text-2xl font-bold mt-2">
-          {dueDate ? new Date(dueDate).toLocaleDateString() : '-'}
+          {dueDate ? formatDateString(dueDate) : '-'}
         </p>
         {statementDate && (
           <p className="text-xs text-gray-500 mt-1">
-            Statement: {new Date(statementDate).toLocaleDateString()}
+            Statement: {formatDateString(statementDate)}
           </p>
         )}
       </div>
