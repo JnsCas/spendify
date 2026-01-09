@@ -1,0 +1,10 @@
+{
+  "name": "spendify",
+  "version": "1.0.0",
+  "description": "Credit card statement PDF parser using local AI",
+  "scripts": {
+    "start": "docker compose up -d",
+    "stop": "docker compose down"
+  },
+  "private": true
+}
