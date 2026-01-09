@@ -1,14 +1,6 @@
 import { DataSource } from 'typeorm';
 import { InviteCode, InviteCodeStatus } from '../../src/invite-codes/invite-code.entity';
-
-function generateRandomCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 8; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
-}
+import { generateInviteCode } from '../../src/common/utils/generate-invite-code';
 
 export default async function seed(dataSource: DataSource): Promise<void> {
   const inviteCodeRepository = dataSource.getRepository(InviteCode);
@@ -27,7 +19,7 @@ export default async function seed(dataSource: DataSource): Promise<void> {
   }
 
   // Create initial invite code
-  const code = generateRandomCode();
+  const code = generateInviteCode();
   const inviteCode = inviteCodeRepository.create({
     code,
     status: InviteCodeStatus.AVAILABLE,

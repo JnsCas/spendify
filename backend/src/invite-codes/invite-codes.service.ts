@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InviteCode, InviteCodeStatus } from './invite-code.entity';
+import { generateInviteCode } from '../common/utils/generate-invite-code';
 
 @Injectable()
 export class InviteCodesService {
@@ -15,21 +16,12 @@ export class InviteCodesService {
     private inviteCodesRepository: Repository<InviteCode>,
   ) {}
 
-  private generateRandomCode(): string {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let code = '';
-    for (let i = 0; i < 8; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return code;
-  }
-
   async generate(): Promise<InviteCode> {
     let code: string;
     let exists = true;
 
     while (exists) {
-      code = this.generateRandomCode();
+      code = generateInviteCode();
       const existing = await this.inviteCodesRepository.findOne({
         where: { code },
       });
