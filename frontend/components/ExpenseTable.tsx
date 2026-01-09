@@ -32,13 +32,20 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
 
   const cards = useMemo(() => {
     const uniqueCards = new Map<string, string>()
+    let hasNoCard = false
     expenses.forEach((e) => {
       if (e.card) {
         const label = e.card.holderName || e.card.lastFourDigits || e.card.id
         uniqueCards.set(e.card.id, label)
+      } else {
+        hasNoCard = true
       }
     })
-    return Array.from(uniqueCards.entries())
+    const cardEntries = Array.from(uniqueCards.entries())
+    if (hasNoCard) {
+      cardEntries.push(['no-card', 'No Card (Taxes/Fees)'])
+    }
+    return cardEntries
   }, [expenses])
 
   const sortedExpenses = useMemo(() => {
@@ -53,7 +60,11 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
 
     // Filter by card
     if (filterCard) {
-      filtered = filtered.filter((e) => e.card?.id === filterCard)
+      if (filterCard === 'no-card') {
+        filtered = filtered.filter((e) => !e.card)
+      } else {
+        filtered = filtered.filter((e) => e.card?.id === filterCard)
+      }
     }
 
     // Sort
