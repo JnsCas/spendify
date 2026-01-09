@@ -26,8 +26,12 @@ export const authApi = {
     const { data } = await api.post('/auth/login', { email, password })
     return data
   },
-  register: async (email: string, password: string, name: string) => {
-    const { data } = await api.post('/auth/register', { email, password, name })
+  register: async (email: string, password: string, name: string, inviteCode: string) => {
+    const { data } = await api.post('/auth/register', { email, password, name, inviteCode })
+    return data
+  },
+  me: async () => {
+    const { data } = await api.get('/auth/me')
     return data
   },
 }
@@ -67,5 +71,20 @@ export const cardsApi = {
   getAll: async () => {
     const { data } = await api.get('/cards')
     return data
+  },
+}
+
+// Invite Codes API (Admin only)
+export const inviteCodesApi = {
+  getAll: async () => {
+    const { data } = await api.get('/invite-codes')
+    return data
+  },
+  generate: async () => {
+    const { data } = await api.post('/invite-codes')
+    return data
+  },
+  delete: async (id: string) => {
+    await api.delete(`/invite-codes/${id}`)
   },
 }

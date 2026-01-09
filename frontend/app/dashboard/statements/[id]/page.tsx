@@ -40,14 +40,15 @@ export default function StatementDetailPage() {
 
   useEffect(() => {
     fetchStatement()
-    // Poll for updates if processing
-    const interval = setInterval(() => {
-      if (statement?.status === 'processing' || statement?.status === 'pending') {
-        fetchStatement()
-      }
-    }, 3000)
-    return () => clearInterval(interval)
-  }, [params.id, statement?.status])
+  }, [params.id])
+
+  useEffect(() => {
+    // Poll for updates while processing
+    if (statement?.status === 'processing' || statement?.status === 'pending') {
+      const interval = setInterval(fetchStatement, 3000)
+      return () => clearInterval(interval)
+    }
+  }, [statement?.status])
 
   const handleReprocess = async () => {
     setReprocessing(true)

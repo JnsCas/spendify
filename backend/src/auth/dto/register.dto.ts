@@ -13,4 +13,7 @@ export class RegisterDto {
   @MinLength(2)
   @MaxLength(100)
   name: string;
+
+  @IsString()
+  inviteCode: string;
 }
