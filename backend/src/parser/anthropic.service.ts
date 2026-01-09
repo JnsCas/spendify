@@ -42,7 +42,7 @@ export class AnthropicService {
   }
 
   async parseStatementText(text: string): Promise<ParsedStatement> {
-    this.logger.log(`Parsing statement text: ${text}`);
+    this.logger.log(`Parsing statement text...`);
     
     const prompt = `Parse Argentine credit card statement. Extract ALL expenses as JSON.
 
@@ -101,10 +101,8 @@ ${text}`;
         ],
       });
 
-      // Log response details for debugging
       this.logger.log(`Response stop_reason: ${response.stop_reason}, usage: ${JSON.stringify(response.usage)}`);
 
-      // Check if response was truncated
       if (response.stop_reason === 'max_tokens') {
         this.logger.warn('Response was truncated due to max_tokens limit - some expenses may be missing!');
       }
@@ -115,8 +113,6 @@ ${text}`;
       }
 
       const responseText = content.text;
-
-      // Extract JSON from response
       let jsonStr = responseText;
       const codeBlockMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (codeBlockMatch) {
