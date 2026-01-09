@@ -2,7 +2,7 @@ import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Statement, StatementStatus } from '../statements/statement.entity';
 import { ParserService } from './parser.service';
 import { ExpensesService } from '../expenses/expenses.service';
@@ -22,6 +22,7 @@ export class StatementProcessor {
     private parserService: ParserService,
     private expensesService: ExpensesService,
     private cardsService: CardsService,
+    private dataSource: DataSource,
   ) {}
 
   @Process('process')
@@ -49,47 +50,50 @@ export class StatementProcessor {
         statement.filePath,
       );
 
-      // Delete existing expenses (for reprocessing)
-      await this.expensesService.deleteByStatement(statementId);
+      // Use transaction to ensure all expenses are committed before status update
+      await this.dataSource.transaction(async (manager) => {
+        // Delete existing expenses (for reprocessing)
+        await this.expensesService.deleteByStatement(statementId);
 
-      // Create expenses
-      for (const expense of parsed.expenses) {
-        let cardId: string | undefined;
+        // Create expenses
+        for (const expense of parsed.expenses) {
+          let cardId: string | undefined;
 
-        // Find or create card if identifier provided
-        if (expense.card_identifier) {
-          const card = await this.cardsService.findOrCreateByIdentifier(
-            statement.userId,
-            expense.card_identifier,
-          );
-          cardId = card.id;
+          // Find or create card if identifier provided
+          if (expense.card_identifier) {
+            const card = await this.cardsService.findOrCreateByIdentifier(
+              statement.userId,
+              expense.card_identifier,
+            );
+            cardId = card.id;
+          }
+
+          await this.expensesService.create({
+            statementId,
+            cardId,
+            description: expense.description,
+            amountArs: expense.amount_ars ?? undefined,
+            amountUsd: expense.amount_usd ?? undefined,
+            currentInstallment: expense.current_installment ?? undefined,
+            totalInstallments: expense.total_installments ?? undefined,
+            purchaseDate: expense.purchase_date
+              ? new Date(expense.purchase_date)
+              : undefined,
+          });
         }
 
-        await this.expensesService.create({
-          statementId,
-          cardId,
-          description: expense.description,
-          amountArs: expense.amount_ars ?? undefined,
-          amountUsd: expense.amount_usd ?? undefined,
-          currentInstallment: expense.current_installment ?? undefined,
-          totalInstallments: expense.total_installments ?? undefined,
-          purchaseDate: expense.purchase_date
-            ? new Date(expense.purchase_date)
+        // Update statement with summary - only after all expenses are created
+        await manager.update(Statement, statementId, {
+          status: StatementStatus.COMPLETED,
+          totalArs: parsed.summary.total_ars ?? undefined,
+          totalUsd: parsed.summary.total_usd ?? undefined,
+          dueDate: parsed.summary.due_date
+            ? new Date(parsed.summary.due_date)
+            : undefined,
+          statementDate: parsed.summary.statement_date
+            ? new Date(parsed.summary.statement_date)
             : undefined,
         });
-      }
-
-      // Update statement with summary
-      await this.statementsRepository.update(statementId, {
-        status: StatementStatus.COMPLETED,
-        totalArs: parsed.summary.total_ars ?? undefined,
-        totalUsd: parsed.summary.total_usd ?? undefined,
-        dueDate: parsed.summary.due_date
-          ? new Date(parsed.summary.due_date)
-          : undefined,
-        statementDate: parsed.summary.statement_date
-          ? new Date(parsed.summary.statement_date)
-          : undefined,
       });
 
       this.logger.log(`Successfully processed statement: ${statementId}`);

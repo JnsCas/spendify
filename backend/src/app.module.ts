@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { StatementsModule } from './statements/statements.module';
@@ -9,6 +11,7 @@ import { ExpensesModule } from './expenses/expenses.module';
 import { CardsModule } from './cards/cards.module';
 import { ParserModule } from './parser/parser.module';
 import { ExportModule } from './export/export.module';
+import { InviteCodesModule } from './invite-codes/invite-codes.module';
 
 @Module({
   imports: [
@@ -16,6 +19,14 @@ import { ExportModule } from './export/export.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+
+    // Rate Limiting
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, // 1 minute window
+        limit: 10, // 10 requests per minute for general endpoints
+      },
+    ]),
 
     // Database
     TypeOrmModule.forRootAsync({
@@ -54,6 +65,13 @@ import { ExportModule } from './export/export.module';
     CardsModule,
     ParserModule,
     ExportModule,
+    InviteCodesModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

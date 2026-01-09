@@ -12,6 +12,7 @@ export default function RegisterPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [inviteCode, setInviteCode] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -21,7 +22,7 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      const data = await authApi.register(email, password, name)
+      const data = await authApi.register(email, password, name, inviteCode)
       setAuth(data.user, data.accessToken)
       router.push('/dashboard')
     } catch (err: any) {
@@ -73,6 +74,17 @@ export default function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               minLength={6}
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Invite Code</label>
+            <input
+              type="text"
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value)}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
