@@ -3,7 +3,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { CustomThrottlerGuard } from './common/guards/custom-throttler.guard';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { StatementsModule } from './statements/statements.module';
@@ -39,7 +40,7 @@ import { InviteCodesModule } from './invite-codes/invite-codes.module';
         password: configService.get('DATABASE_PASSWORD', 'spendify123'),
         database: configService.get('DATABASE_NAME', 'spendify'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get('NODE_ENV') === 'development',
+        synchronize: ['development', 'test'].includes(configService.get('NODE_ENV', '')),
         logging: false,
       }),
       inject: [ConfigService],
@@ -70,8 +71,8 @@ import { InviteCodesModule } from './invite-codes/invite-codes.module';
   providers: [
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: CustomThrottlerGuard,
     },
-  ],
+  ]
 })
-export class AppModule {}
+export class AppModule { }
