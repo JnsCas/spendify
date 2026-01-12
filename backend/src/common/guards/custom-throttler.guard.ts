@@ -1,0 +1,13 @@
+import { Injectable, ExecutionContext } from '@nestjs/common';
+import { ThrottlerGuard } from '@nestjs/throttler';
+
+@Injectable()
+export class CustomThrottlerGuard extends ThrottlerGuard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Skip throttling in test environment
+    if (process.env.NODE_ENV === 'test') {
+      return true;
+    }
+    return super.canActivate(context);
+  }
+}
