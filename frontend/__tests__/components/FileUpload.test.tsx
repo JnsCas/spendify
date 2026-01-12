@@ -44,6 +44,7 @@ describe('FileUpload Component', () => {
         value: [file],
         writable: false,
       })
+      
       fireEvent.change(input)
 
       await waitFor(() => {
@@ -65,13 +66,18 @@ describe('FileUpload Component', () => {
       await waitFor(() => {
         expect(mockUpload).toHaveBeenCalledWith(file)
         expect(mockOnSuccess).toHaveBeenCalled()
+        expect(screen.getByText('Browse Files')).toBeInTheDocument()
       })
     })
   })
 
   describe('Upload States', () => {
     it('should show uploading state during upload', async () => {
-      mockUpload.mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 100)))
+      // Use a promise that resolves after a delay to allow state updates to be tracked
+      const uploadPromise = new Promise<{ data: { id: string } }>((resolve) => {
+        setTimeout(() => resolve({ data: { id: '123' } }), 50)
+      })
+      mockUpload.mockReturnValue(uploadPromise)
       render(<FileUpload onSuccess={mockOnSuccess} />)
 
       const file = new File(['content'], 'statement.pdf', { type: 'application/pdf' })
@@ -79,8 +85,17 @@ describe('FileUpload Component', () => {
 
       await userEvent.upload(input, file)
 
-      expect(screen.getByText('Uploading...')).toBeInTheDocument()
-      expect(screen.queryByText('Browse Files')).not.toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByText('Uploading...')).toBeInTheDocument()
+        expect(screen.queryByText('Browse Files')).not.toBeInTheDocument()
+      })
+      
+      // Wait for upload to complete and component to return to normal state
+      await waitFor(() => {
+        expect(screen.getByText('Browse Files')).toBeInTheDocument()
+        expect(screen.queryByText('Uploading...')).not.toBeInTheDocument()
+        expect(mockOnSuccess).toHaveBeenCalled()
+      })
     })
   })
 
@@ -130,6 +145,7 @@ describe('FileUpload Component', () => {
         writable: true,
         configurable: true,
       })
+      
       fireEvent.change(input)
 
       await waitFor(() => {
@@ -144,6 +160,7 @@ describe('FileUpload Component', () => {
         writable: true,
         configurable: true,
       })
+      
       fireEvent.change(input)
 
       await waitFor(() => {
