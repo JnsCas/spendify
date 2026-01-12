@@ -52,6 +52,7 @@ services:
       - POSTGRES_DB=spendify
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U spendify -d spendify"]
       interval: 5s
