@@ -1,27 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { InjectQueue } from '@nestjs/bull';
-import { Repository } from 'typeorm';
 import { Queue } from 'bull';
 import { Statement, StatementStatus } from './statement.entity';
-import { Expense } from '../expenses/expense.entity';
+import { StatementRepository, MonthlyData } from './statement.repository';
+import { ExpenseRepository, CardBreakdown } from '../expenses/expense.repository';
 import * as fs from 'fs';
 import * as path from 'path';
-
-export interface MonthlyData {
-  month: number;
-  totalArs: number;
-  totalUsd: number;
-  statementCount: number;
-}
-
-export interface CardBreakdown {
-  cardId: string | null;
-  cardName: string | null;
-  lastFourDigits: string | null;
-  totalArs: number;
-  totalUsd: number;
-}
 
 export interface StatementSummaryResponse {
   availableYears: number[];
@@ -37,10 +21,8 @@ export interface StatementSummaryResponse {
 @Injectable()
 export class StatementsService {
   constructor(
-    @InjectRepository(Statement)
-    private statementsRepository: Repository<Statement>,
-    @InjectRepository(Expense)
-    private expensesRepository: Repository<Expense>,
+    private readonly statementRepository: StatementRepository,
+    private readonly expenseRepository: ExpenseRepository,
     @InjectQueue('statement-processing')
     private statementQueue: Queue,
   ) {}
@@ -61,15 +43,13 @@ export class StatementsService {
     fs.writeFileSync(filePath, file.buffer);
 
     // Create statement record
-    const statement = this.statementsRepository.create({
+    const savedStatement = await this.statementRepository.create({
       userId,
       uploadDate: new Date(),
       originalFilename: file.originalname,
       filePath,
       status: StatementStatus.PENDING,
     });
-
-    const savedStatement = await this.statementsRepository.save(statement);
 
     // Add to processing queue
     await this.statementQueue.add('process', {
@@ -80,10 +60,7 @@ export class StatementsService {
   }
 
   async findAllByUser(userId: string): Promise<Statement[]> {
-    return this.statementsRepository.find({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-    });
+    return this.statementRepository.findAllByUser(userId);
   }
 
   async findAllByUserFiltered(
@@ -91,25 +68,7 @@ export class StatementsService {
     year?: number,
     month?: number,
   ): Promise<Statement[]> {
-    const query = this.statementsRepository
-      .createQueryBuilder('statement')
-      .where('statement.userId = :userId', { userId })
-      .orderBy('statement.statementDate', 'DESC')
-      .addOrderBy('statement.createdAt', 'DESC');
-
-    if (year) {
-      query.andWhere('EXTRACT(YEAR FROM statement.statementDate) = :year', {
-        year,
-      });
-    }
-
-    if (month) {
-      query.andWhere('EXTRACT(MONTH FROM statement.statementDate) = :month', {
-        month,
-      });
-    }
-
-    return query.getMany();
+    return this.statementRepository.findAllByUserFiltered(userId, year, month);
   }
 
   async getSummaryByUser(
@@ -117,71 +76,17 @@ export class StatementsService {
     year: number,
   ): Promise<StatementSummaryResponse> {
     // Get available years (distinct years from statements)
-    const yearsResult = await this.statementsRepository
-      .createQueryBuilder('statement')
-      .select('DISTINCT EXTRACT(YEAR FROM statement.statementDate)', 'year')
-      .where('statement.userId = :userId', { userId })
-      .andWhere('statement.statementDate IS NOT NULL')
-      .orderBy('year', 'DESC')
-      .getRawMany();
-
-    const availableYears = yearsResult
-      .map((r) => parseInt(r.year, 10))
-      .filter((y) => !isNaN(y));
+    const availableYears = await this.statementRepository.getAvailableYears(userId);
 
     // Get monthly aggregates for the requested year
-    const monthlyResult = await this.statementsRepository
-      .createQueryBuilder('statement')
-      .select([
-        'EXTRACT(MONTH FROM statement.statementDate) as month',
-        'COALESCE(SUM(statement.totalArs), 0) as "totalArs"',
-        'COALESCE(SUM(statement.totalUsd), 0) as "totalUsd"',
-        'COUNT(*) as "statementCount"',
-      ])
-      .where('statement.userId = :userId', { userId })
-      .andWhere('EXTRACT(YEAR FROM statement.statementDate) = :year', { year })
-      .groupBy('EXTRACT(MONTH FROM statement.statementDate)')
-      .orderBy('month', 'ASC')
-      .getRawMany();
-
-    const monthlyData: MonthlyData[] = monthlyResult.map((r) => ({
-      month: parseInt(r.month, 10),
-      totalArs: parseFloat(r.totalArs) || 0,
-      totalUsd: parseFloat(r.totalUsd) || 0,
-      statementCount: parseInt(r.statementCount, 10),
-    }));
+    const monthlyData = await this.statementRepository.getMonthlyAggregates(userId, year);
 
     // Calculate year totals
     const yearTotalArs = monthlyData.reduce((sum, m) => sum + m.totalArs, 0);
     const yearTotalUsd = monthlyData.reduce((sum, m) => sum + m.totalUsd, 0);
 
     // Get card breakdown from expenses for the year
-    const cardResult = await this.expensesRepository
-      .createQueryBuilder('e')
-      .leftJoin('e.statement', 's')
-      .leftJoin('e.card', 'c')
-      .select([
-        'e.cardId as "cardId"',
-        'COALESCE(c.cardName, \'Unknown Card\') as "cardName"',
-        'c.lastFourDigits as "lastFourDigits"',
-        'COALESCE(SUM(e.amountArs), 0) as "totalArs"',
-        'COALESCE(SUM(e.amountUsd), 0) as "totalUsd"',
-      ])
-      .where('s.userId = :userId', { userId })
-      .andWhere('EXTRACT(YEAR FROM s.statementDate) = :year', { year })
-      .groupBy('e.cardId')
-      .addGroupBy('c.cardName')
-      .addGroupBy('c.lastFourDigits')
-      .orderBy('"totalArs"', 'DESC')
-      .getRawMany();
-
-    const cardBreakdown: CardBreakdown[] = cardResult.map((r) => ({
-      cardId: r.cardId,
-      cardName: r.cardName || null,
-      lastFourDigits: r.lastFourDigits,
-      totalArs: parseFloat(r.totalArs) || 0,
-      totalUsd: parseFloat(r.totalUsd) || 0,
-    }));
+    const cardBreakdown = await this.expenseRepository.getCardBreakdownByUserAndYear(userId, year);
 
     return {
       availableYears,
@@ -196,10 +101,7 @@ export class StatementsService {
   }
 
   async findOne(id: string, userId: string): Promise<Statement> {
-    const statement = await this.statementsRepository.findOne({
-      where: { id, userId },
-      relations: ['expenses', 'expenses.card'],
-    });
+    const statement = await this.statementRepository.findOneWithRelations(id, userId);
 
     if (!statement) {
       throw new NotFoundException('Statement not found');
@@ -214,7 +116,7 @@ export class StatementsService {
     // Reset status and add to queue
     statement.status = StatementStatus.PENDING;
     statement.errorMessage = null;
-    await this.statementsRepository.save(statement);
+    await this.statementRepository.save(statement);
 
     await this.statementQueue.add('process', {
       statementId: statement.id,
@@ -231,7 +133,7 @@ export class StatementsService {
       fs.unlinkSync(statement.filePath);
     }
 
-    await this.statementsRepository.remove(statement);
+    await this.statementRepository.remove(statement);
   }
 
   async updateStatus(
@@ -239,9 +141,9 @@ export class StatementsService {
     status: StatementStatus,
     errorMessage?: string,
   ): Promise<void> {
-    await this.statementsRepository.update(id, {
+    await this.statementRepository.update(id, {
       status,
-      errorMessage,
+      errorMessage: errorMessage || null,
     });
   }
 
@@ -254,6 +156,6 @@ export class StatementsService {
       statementDate?: Date;
     },
   ): Promise<void> {
-    await this.statementsRepository.update(id, data);
+    await this.statementRepository.update(id, data);
   }
 }

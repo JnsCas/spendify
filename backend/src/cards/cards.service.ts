@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Card } from './card.entity';
+import { CardRepository, CreateCardData } from './card.repository';
 
 export interface CreateCardDto {
   userId: string;
@@ -13,27 +12,18 @@ export interface CreateCardDto {
 
 @Injectable()
 export class CardsService {
-  constructor(
-    @InjectRepository(Card)
-    private cardsRepository: Repository<Card>,
-  ) {}
+  constructor(private readonly cardRepository: CardRepository) {}
 
   async create(data: CreateCardDto): Promise<Card> {
-    const card = this.cardsRepository.create(data);
-    return this.cardsRepository.save(card);
+    return this.cardRepository.create(data);
   }
 
   async findByUser(userId: string): Promise<Card[]> {
-    return this.cardsRepository.find({
-      where: { userId },
-      order: { createdAt: 'ASC' },
-    });
+    return this.cardRepository.findByUser(userId);
   }
 
   async findOne(id: string, userId: string): Promise<Card> {
-    const card = await this.cardsRepository.findOne({
-      where: { id, userId },
-    });
+    const card = await this.cardRepository.findOne(id, userId);
 
     if (!card) {
       throw new NotFoundException('Card not found');
@@ -47,12 +37,7 @@ export class CardsService {
     identifier: string,
   ): Promise<Card> {
     // Try to find by last four digits or holder name
-    let card = await this.cardsRepository.findOne({
-      where: [
-        { userId, lastFourDigits: identifier },
-        { userId, holderName: identifier },
-      ],
-    });
+    let card = await this.cardRepository.findByIdentifier(userId, identifier);
 
     if (!card) {
       // Create new card
@@ -68,6 +53,6 @@ export class CardsService {
 
   async delete(id: string, userId: string): Promise<void> {
     const card = await this.findOne(id, userId);
-    await this.cardsRepository.remove(card);
+    await this.cardRepository.remove(card);
   }
 }
