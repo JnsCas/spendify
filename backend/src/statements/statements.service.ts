@@ -1,17 +1,28 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { InjectQueue } from '@nestjs/bull';
-import { Repository } from 'typeorm';
 import { Queue } from 'bull';
 import { Statement, StatementStatus } from './statement.entity';
+import { StatementRepository, MonthlyData } from './statement.repository';
+import { ExpenseRepository, CardBreakdown } from '../expenses/expense.repository';
 import * as fs from 'fs';
 import * as path from 'path';
+
+export interface StatementSummaryResponse {
+  availableYears: number[];
+  yearSummary: {
+    year: number;
+    totalArs: number;
+    totalUsd: number;
+    monthlyData: MonthlyData[];
+  };
+  cardBreakdown: CardBreakdown[];
+}
 
 @Injectable()
 export class StatementsService {
   constructor(
-    @InjectRepository(Statement)
-    private statementsRepository: Repository<Statement>,
+    private readonly statementRepository: StatementRepository,
+    private readonly expenseRepository: ExpenseRepository,
     @InjectQueue('statement-processing')
     private statementQueue: Queue,
   ) {}
@@ -32,15 +43,13 @@ export class StatementsService {
     fs.writeFileSync(filePath, file.buffer);
 
     // Create statement record
-    const statement = this.statementsRepository.create({
+    const savedStatement = await this.statementRepository.create({
       userId,
       uploadDate: new Date(),
       originalFilename: file.originalname,
       filePath,
       status: StatementStatus.PENDING,
     });
-
-    const savedStatement = await this.statementsRepository.save(statement);
 
     // Add to processing queue
     await this.statementQueue.add('process', {
@@ -51,17 +60,48 @@ export class StatementsService {
   }
 
   async findAllByUser(userId: string): Promise<Statement[]> {
-    return this.statementsRepository.find({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-    });
+    return this.statementRepository.findAllByUser(userId);
+  }
+
+  async findAllByUserFiltered(
+    userId: string,
+    year?: number,
+    month?: number,
+  ): Promise<Statement[]> {
+    return this.statementRepository.findAllByUserFiltered(userId, year, month);
+  }
+
+  async getSummaryByUser(
+    userId: string,
+    year: number,
+  ): Promise<StatementSummaryResponse> {
+    // Get available years (distinct years from statements)
+    const availableYears = await this.statementRepository.getAvailableYears(userId);
+
+    // Get monthly aggregates for the requested year
+    const monthlyData = await this.statementRepository.getMonthlyAggregates(userId, year);
+
+    // Calculate year totals
+    const yearTotalArs = monthlyData.reduce((sum, m) => sum + m.totalArs, 0);
+    const yearTotalUsd = monthlyData.reduce((sum, m) => sum + m.totalUsd, 0);
+
+    // Get card breakdown from expenses for the year
+    const cardBreakdown = await this.expenseRepository.getCardBreakdownByUserAndYear(userId, year);
+
+    return {
+      availableYears,
+      yearSummary: {
+        year,
+        totalArs: yearTotalArs,
+        totalUsd: yearTotalUsd,
+        monthlyData,
+      },
+      cardBreakdown,
+    };
   }
 
   async findOne(id: string, userId: string): Promise<Statement> {
-    const statement = await this.statementsRepository.findOne({
-      where: { id, userId },
-      relations: ['expenses', 'expenses.card'],
-    });
+    const statement = await this.statementRepository.findOneWithRelations(id, userId);
 
     if (!statement) {
       throw new NotFoundException('Statement not found');
@@ -76,7 +116,7 @@ export class StatementsService {
     // Reset status and add to queue
     statement.status = StatementStatus.PENDING;
     statement.errorMessage = null;
-    await this.statementsRepository.save(statement);
+    await this.statementRepository.save(statement);
 
     await this.statementQueue.add('process', {
       statementId: statement.id,
@@ -93,7 +133,7 @@ export class StatementsService {
       fs.unlinkSync(statement.filePath);
     }
 
-    await this.statementsRepository.remove(statement);
+    await this.statementRepository.remove(statement);
   }
 
   async updateStatus(
@@ -101,9 +141,9 @@ export class StatementsService {
     status: StatementStatus,
     errorMessage?: string,
   ): Promise<void> {
-    await this.statementsRepository.update(id, {
+    await this.statementRepository.update(id, {
       status,
-      errorMessage,
+      errorMessage: errorMessage || null,
     });
   }
 
@@ -116,6 +156,6 @@ export class StatementsService {
       statementDate?: Date;
     },
   ): Promise<void> {
-    await this.statementsRepository.update(id, data);
+    await this.statementRepository.update(id, data);
   }
 }

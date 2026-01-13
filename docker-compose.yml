@@ -8,12 +8,14 @@ services:
       - "3000:3000"
     env_file:
       - ./frontend/.env
+    environment:
+      - WATCHPACK_POLLING=true
     depends_on:
       - backend
     volumes:
       - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
+      - ./frontend/node_modules:/app/node_modules
+      - ./frontend/.next:/app/.next
     networks:
       - spendify-network
 

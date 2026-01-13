@@ -36,3 +36,5 @@ coverage/
 *.sqlite
 
 prompts/*
+
+.playwright-mcp/*

@@ -1,7 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Expense } from './expense.entity';
+import { ExpenseRepository, CreateExpenseData } from './expense.repository';
 
 export interface CreateExpenseDto {
   statementId: string;
@@ -16,34 +15,22 @@ export interface CreateExpenseDto {
 
 @Injectable()
 export class ExpensesService {
-  constructor(
-    @InjectRepository(Expense)
-    private expensesRepository: Repository<Expense>,
-  ) {}
+  constructor(private readonly expenseRepository: ExpenseRepository) {}
 
   async create(data: CreateExpenseDto): Promise<Expense> {
-    const expense = this.expensesRepository.create(data);
-    return this.expensesRepository.save(expense);
+    return this.expenseRepository.create(data);
   }
 
   async createMany(expenses: CreateExpenseDto[]): Promise<Expense[]> {
-    const entities = expenses.map((e) => this.expensesRepository.create(e));
-    return this.expensesRepository.save(entities);
+    return this.expenseRepository.createMany(expenses);
   }
 
   async findByStatement(statementId: string): Promise<Expense[]> {
-    return this.expensesRepository.find({
-      where: { statementId },
-      relations: ['card'],
-      order: { createdAt: 'ASC' },
-    });
+    return this.expenseRepository.findByStatement(statementId);
   }
 
   async findOne(id: string): Promise<Expense> {
-    const expense = await this.expensesRepository.findOne({
-      where: { id },
-      relations: ['card'],
-    });
+    const expense = await this.expenseRepository.findOne(id);
 
     if (!expense) {
       throw new NotFoundException('Expense not found');
@@ -53,11 +40,11 @@ export class ExpensesService {
   }
 
   async update(id: string, data: Partial<CreateExpenseDto>): Promise<Expense> {
-    await this.expensesRepository.update(id, data);
+    await this.expenseRepository.update(id, data);
     return this.findOne(id);
   }
 
   async deleteByStatement(statementId: string): Promise<void> {
-    await this.expensesRepository.delete({ statementId });
+    return this.expenseRepository.deleteByStatement(statementId);
   }
 }

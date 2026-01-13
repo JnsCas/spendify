@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
 import { getQueueToken } from '@nestjs/bull';
 import { NotFoundException } from '@nestjs/common';
 import * as fs from 'fs';
 import { StatementsService } from '../../src/statements/statements.service';
-import { Statement, StatementStatus } from '../../src/statements/statement.entity';
-import { createMockRepository, MockRepository } from '../utils/mock-repository';
+import { StatementRepository } from '../../src/statements/statement.repository';
+import { ExpenseRepository } from '../../src/expenses/expense.repository';
+import { StatementStatus } from '../../src/statements/statement.entity';
 import { createMockQueue, MockQueue } from '../utils/mock-queue';
 import { createMockStatement } from '../utils/factories';
 
@@ -13,18 +13,40 @@ jest.mock('fs');
 
 describe('StatementsService', () => {
   let service: StatementsService;
-  let statementRepository: MockRepository<Statement>;
+  let statementRepository: jest.Mocked<StatementRepository>;
+  let expenseRepository: jest.Mocked<ExpenseRepository>;
   let statementQueue: MockQueue;
 
   const mockUserId = '123e4567-e89b-12d3-a456-426614174000';
 
   beforeEach(async () => {
+    const mockStatementRepository = {
+      create: jest.fn(),
+      save: jest.fn(),
+      findAllByUser: jest.fn(),
+      findOne: jest.fn(),
+      findOneWithRelations: jest.fn(),
+      update: jest.fn(),
+      remove: jest.fn(),
+      findAllByUserFiltered: jest.fn(),
+      getAvailableYears: jest.fn(),
+      getMonthlyAggregates: jest.fn(),
+    };
+
+    const mockExpenseRepository = {
+      getCardBreakdownByUserAndYear: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StatementsService,
         {
-          provide: getRepositoryToken(Statement),
-          useValue: createMockRepository(),
+          provide: StatementRepository,
+          useValue: mockStatementRepository,
+        },
+        {
+          provide: ExpenseRepository,
+          useValue: mockExpenseRepository,
         },
         {
           provide: getQueueToken('statement-processing'),
@@ -34,7 +56,8 @@ describe('StatementsService', () => {
     }).compile();
 
     service = module.get<StatementsService>(StatementsService);
-    statementRepository = module.get(getRepositoryToken(Statement));
+    statementRepository = module.get(StatementRepository);
+    expenseRepository = module.get(ExpenseRepository);
     statementQueue = module.get(getQueueToken('statement-processing'));
 
     // Mock fs methods - default to false for existsSync so mkdir gets called
@@ -57,8 +80,7 @@ describe('StatementsService', () => {
 
       const mockStatement = createMockStatement({ userId: mockUserId });
 
-      statementRepository.create!.mockReturnValue(mockStatement);
-      statementRepository.save!.mockResolvedValue(mockStatement);
+      statementRepository.create.mockResolvedValue(mockStatement);
 
       const result = await service.create(mockUserId, mockFile);
 
@@ -71,7 +93,6 @@ describe('StatementsService', () => {
           status: StatementStatus.PENDING,
         })
       );
-      expect(statementRepository.save).toHaveBeenCalledWith(mockStatement);
       expect(statementQueue.add).toHaveBeenCalledWith('process', {
         statementId: mockStatement.id,
       });
@@ -87,8 +108,7 @@ describe('StatementsService', () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
 
       const mockStatement = createMockStatement();
-      statementRepository.create!.mockReturnValue(mockStatement);
-      statementRepository.save!.mockResolvedValue(mockStatement);
+      statementRepository.create.mockResolvedValue(mockStatement);
 
       await service.create(mockUserId, mockFile);
 
@@ -107,19 +127,16 @@ describe('StatementsService', () => {
         createMockStatement({ userId: mockUserId, id: 'another-id' }),
       ];
 
-      statementRepository.find!.mockResolvedValue(mockStatements);
+      statementRepository.findAllByUser.mockResolvedValue(mockStatements);
 
       const result = await service.findAllByUser(mockUserId);
 
-      expect(statementRepository.find).toHaveBeenCalledWith({
-        where: { userId: mockUserId },
-        order: { createdAt: 'DESC' },
-      });
+      expect(statementRepository.findAllByUser).toHaveBeenCalledWith(mockUserId);
       expect(result).toEqual(mockStatements);
     });
 
     it('should return empty array if no statements found', async () => {
-      statementRepository.find!.mockResolvedValue([]);
+      statementRepository.findAllByUser.mockResolvedValue([]);
 
       const result = await service.findAllByUser(mockUserId);
 
@@ -131,30 +148,22 @@ describe('StatementsService', () => {
     it('should return a statement with relations', async () => {
       const mockStatement = createMockStatement({ userId: mockUserId });
 
-      statementRepository.findOne!.mockResolvedValue(mockStatement);
+      statementRepository.findOneWithRelations.mockResolvedValue(mockStatement);
 
       const result = await service.findOne(mockStatement.id, mockUserId);
 
-      expect(statementRepository.findOne).toHaveBeenCalledWith({
-        where: { id: mockStatement.id, userId: mockUserId },
-        relations: ['expenses', 'expenses.card'],
-      });
+      expect(statementRepository.findOneWithRelations).toHaveBeenCalledWith(
+        mockStatement.id,
+        mockUserId
+      );
       expect(result).toEqual(mockStatement);
     });
 
     it('should throw NotFoundException if statement not found', async () => {
-      statementRepository.findOne!.mockResolvedValue(null);
+      statementRepository.findOneWithRelations.mockResolvedValue(null);
 
       await expect(
         service.findOne('nonexistent-id', mockUserId)
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('should throw NotFoundException if statement belongs to different user', async () => {
-      statementRepository.findOne!.mockResolvedValue(null);
-
-      await expect(
-        service.findOne('statement-id', 'different-user-id')
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -167,8 +176,8 @@ describe('StatementsService', () => {
         errorMessage: 'Previous error',
       });
 
-      statementRepository.findOne!.mockResolvedValue(mockStatement);
-      statementRepository.save!.mockResolvedValue(mockStatement);
+      statementRepository.findOneWithRelations.mockResolvedValue(mockStatement);
+      statementRepository.save.mockResolvedValue(mockStatement);
 
       const result = await service.reprocess(mockStatement.id, mockUserId);
 
@@ -187,8 +196,7 @@ describe('StatementsService', () => {
 
       // For delete test, the file should exist
       (fs.existsSync as jest.Mock).mockReturnValue(true);
-      statementRepository.findOne!.mockResolvedValue(mockStatement);
-      statementRepository.remove!.mockResolvedValue(mockStatement);
+      statementRepository.findOneWithRelations.mockResolvedValue(mockStatement);
 
       await service.delete(mockStatement.id, mockUserId);
 
@@ -201,8 +209,7 @@ describe('StatementsService', () => {
       const mockStatement = createMockStatement({ userId: mockUserId });
 
       (fs.existsSync as jest.Mock).mockReturnValue(false);
-      statementRepository.findOne!.mockResolvedValue(mockStatement);
-      statementRepository.remove!.mockResolvedValue(mockStatement);
+      statementRepository.findOneWithRelations.mockResolvedValue(mockStatement);
 
       await service.delete(mockStatement.id, mockUserId);
 
@@ -220,7 +227,7 @@ describe('StatementsService', () => {
 
       expect(statementRepository.update).toHaveBeenCalledWith(statementId, {
         status: newStatus,
-        errorMessage: undefined,
+        errorMessage: null,
       });
     });
 
@@ -251,6 +258,62 @@ describe('StatementsService', () => {
       await service.updateParsedData(statementId, data);
 
       expect(statementRepository.update).toHaveBeenCalledWith(statementId, data);
+    });
+  });
+
+  describe('findAllByUserFiltered', () => {
+    it('should call repository with filters', async () => {
+      const mockStatements = [createMockStatement()];
+      statementRepository.findAllByUserFiltered.mockResolvedValue(mockStatements);
+
+      const result = await service.findAllByUserFiltered(mockUserId, 2024, 3);
+
+      expect(statementRepository.findAllByUserFiltered).toHaveBeenCalledWith(
+        mockUserId,
+        2024,
+        3
+      );
+      expect(result).toEqual(mockStatements);
+    });
+  });
+
+  describe('getSummaryByUser', () => {
+    it('should return summary with available years and monthly data', async () => {
+      statementRepository.getAvailableYears.mockResolvedValue([2024, 2023]);
+      statementRepository.getMonthlyAggregates.mockResolvedValue([
+        { month: 1, totalArs: 10000, totalUsd: 50, statementCount: 2 },
+        { month: 2, totalArs: 15000, totalUsd: 75, statementCount: 1 },
+      ]);
+      expenseRepository.getCardBreakdownByUserAndYear.mockResolvedValue([
+        { cardId: 'card-1', cardName: 'Visa', lastFourDigits: '1234', totalArs: 8000, totalUsd: 40 },
+      ]);
+
+      const result = await service.getSummaryByUser(mockUserId, 2024);
+
+      expect(statementRepository.getAvailableYears).toHaveBeenCalledWith(mockUserId);
+      expect(statementRepository.getMonthlyAggregates).toHaveBeenCalledWith(mockUserId, 2024);
+      expect(expenseRepository.getCardBreakdownByUserAndYear).toHaveBeenCalledWith(mockUserId, 2024);
+
+      expect(result.availableYears).toEqual([2024, 2023]);
+      expect(result.yearSummary.year).toBe(2024);
+      expect(result.yearSummary.totalArs).toBe(25000);
+      expect(result.yearSummary.totalUsd).toBe(125);
+      expect(result.yearSummary.monthlyData).toHaveLength(2);
+      expect(result.cardBreakdown).toHaveLength(1);
+    });
+
+    it('should handle empty data', async () => {
+      statementRepository.getAvailableYears.mockResolvedValue([]);
+      statementRepository.getMonthlyAggregates.mockResolvedValue([]);
+      expenseRepository.getCardBreakdownByUserAndYear.mockResolvedValue([]);
+
+      const result = await service.getSummaryByUser(mockUserId, 2024);
+
+      expect(result.availableYears).toEqual([]);
+      expect(result.yearSummary.totalArs).toBe(0);
+      expect(result.yearSummary.totalUsd).toBe(0);
+      expect(result.yearSummary.monthlyData).toEqual([]);
+      expect(result.cardBreakdown).toEqual([]);
     });
   });
 });

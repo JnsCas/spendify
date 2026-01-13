@@ -1,30 +1,34 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../../src/users/users.service';
-import { User } from '../../src/users/user.entity';
-import { createMockRepository, MockRepository } from '../utils/mock-repository';
+import { UserRepository } from '../../src/users/user.repository';
 import { createMockUser } from '../utils/factories';
 
 jest.mock('bcryptjs');
 
 describe('UsersService', () => {
   let service: UsersService;
-  let userRepository: MockRepository<User>;
+  let userRepository: jest.Mocked<UserRepository>;
 
   beforeEach(async () => {
+    const mockUserRepository = {
+      findByEmail: jest.fn(),
+      findById: jest.fn(),
+      create: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
         {
-          provide: getRepositoryToken(User),
-          useValue: createMockRepository(),
+          provide: UserRepository,
+          useValue: mockUserRepository,
         },
       ],
     }).compile();
 
     service = module.get<UsersService>(UsersService);
-    userRepository = module.get(getRepositoryToken(User));
+    userRepository = module.get(UserRepository);
   });
 
   afterEach(() => {
@@ -34,18 +38,16 @@ describe('UsersService', () => {
   describe('findByEmail', () => {
     it('should find a user by email', async () => {
       const mockUser = createMockUser({ email: 'test@example.com' });
-      userRepository.findOne!.mockResolvedValue(mockUser);
+      userRepository.findByEmail.mockResolvedValue(mockUser);
 
       const result = await service.findByEmail('test@example.com');
 
       expect(result).toEqual(mockUser);
-      expect(userRepository.findOne).toHaveBeenCalledWith({
-        where: { email: 'test@example.com' },
-      });
+      expect(userRepository.findByEmail).toHaveBeenCalledWith('test@example.com');
     });
 
     it('should return null if user not found', async () => {
-      userRepository.findOne!.mockResolvedValue(null);
+      userRepository.findByEmail.mockResolvedValue(null);
 
       const result = await service.findByEmail('nonexistent@example.com');
 
@@ -56,18 +58,16 @@ describe('UsersService', () => {
   describe('findById', () => {
     it('should find a user by id', async () => {
       const mockUser = createMockUser();
-      userRepository.findOne!.mockResolvedValue(mockUser);
+      userRepository.findById.mockResolvedValue(mockUser);
 
       const result = await service.findById(mockUser.id);
 
       expect(result).toEqual(mockUser);
-      expect(userRepository.findOne).toHaveBeenCalledWith({
-        where: { id: mockUser.id },
-      });
+      expect(userRepository.findById).toHaveBeenCalledWith(mockUser.id);
     });
 
     it('should return null if user not found', async () => {
-      userRepository.findOne!.mockResolvedValue(null);
+      userRepository.findById.mockResolvedValue(null);
 
       const result = await service.findById('nonexistent-id');
 
@@ -85,8 +85,7 @@ describe('UsersService', () => {
       const mockUser = createMockUser({ email, name, passwordHash: hashedPassword });
 
       (bcrypt.hash as jest.Mock).mockResolvedValue(hashedPassword);
-      userRepository.create!.mockReturnValue(mockUser);
-      userRepository.save!.mockResolvedValue(mockUser);
+      userRepository.create.mockResolvedValue(mockUser);
 
       const result = await service.create(email, password, name);
 
@@ -96,7 +95,6 @@ describe('UsersService', () => {
         passwordHash: hashedPassword,
         name,
       });
-      expect(userRepository.save).toHaveBeenCalledWith(mockUser);
       expect(result).toEqual(mockUser);
     });
   });
