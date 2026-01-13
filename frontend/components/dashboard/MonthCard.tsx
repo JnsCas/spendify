@@ -14,6 +14,8 @@ interface MonthCardProps {
   statements: Statement[]
   onStatementClick: (id: string) => void
   onUploadSuccess: () => void
+  isHighestSpending?: boolean
+  isLowestSpending?: boolean
 }
 
 const formatCurrency = (value: number, currency: 'ARS' | 'USD') => {
@@ -40,6 +42,8 @@ export function MonthCard({
   statements,
   onStatementClick,
   onUploadSuccess,
+  isHighestSpending = false,
+  isLowestSpending = false,
 }: MonthCardProps) {
   const [showUpload, setShowUpload] = useState(false)
   const [expanded, setExpanded] = useState(false)
@@ -52,17 +56,53 @@ export function MonthCard({
     onUploadSuccess()
   }
 
+  // Determine card styling based on spending status
+  const getCardClasses = () => {
+    if (isHighestSpending) {
+      return 'border-red-300 bg-red-50 ring-2 ring-red-200'
+    }
+    if (isLowestSpending) {
+      return 'border-emerald-300 bg-emerald-50 ring-2 ring-emerald-200'
+    }
+    return 'border-gray-200 bg-white'
+  }
+
+  const getHeaderClasses = () => {
+    if (isHighestSpending) {
+      return 'border-red-200 bg-red-100'
+    }
+    if (isLowestSpending) {
+      return 'border-emerald-200 bg-emerald-100'
+    }
+    if (hasStatements) {
+      return 'border-gray-100 bg-blue-50'
+    }
+    return 'border-gray-100 bg-gray-50'
+  }
+
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white transition-shadow hover:shadow-md">
+    <div
+      className={`overflow-hidden rounded-lg border transition-shadow hover:shadow-md ${getCardClasses()}`}
+    >
       {/* Header */}
       <div
-        className={`cursor-pointer border-b border-gray-100 px-4 py-3 ${
-          hasStatements ? 'bg-blue-50' : 'bg-gray-50'
-        }`}
+        className={`cursor-pointer border-b px-4 py-3 ${getHeaderClasses()}`}
         onClick={() => hasStatements && setExpanded(!expanded)}
       >
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900">{monthName}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-gray-900">{monthName}</h3>
+            {isHighestSpending && (
+              <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-medium text-white">
+                Highest
+              </span>
+            )}
+            {isLowestSpending && (
+              <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-xs font-medium text-white">
+                Lowest
+              </span>
+            )}
+          </div>
           <span className="text-xs text-gray-500">
             {statementCount} {statementCount === 1 ? 'statement' : 'statements'}
           </span>

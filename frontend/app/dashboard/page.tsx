@@ -62,44 +62,21 @@ export default function DashboardPage() {
   const yearTotalUsd = summary?.yearSummary.totalUsd || 0
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <div className="text-right">
-          <p className="text-sm text-gray-500">Year Total</p>
-          <p className="text-lg font-semibold text-gray-900">
-            {new Intl.NumberFormat('es-AR', {
-              style: 'currency',
-              currency: 'ARS',
-              maximumFractionDigits: 0,
-            }).format(yearTotalArs)}
-            {yearTotalUsd > 0 && (
-              <span className="ml-2 text-gray-600">
-                +{' '}
-                {new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: 'USD',
-                  maximumFractionDigits: 0,
-                }).format(yearTotalUsd)}
-              </span>
-            )}
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6">
+      {/* Year Navigation with Total */}
+      <YearPaginator
+        currentYear={currentYear}
+        minYear={1990}
+        onYearChange={handleYearChange}
+        totalArs={yearTotalArs}
+        totalUsd={yearTotalUsd}
+      />
 
       {/* Charts Section */}
       <DashboardCharts
         summary={summary}
         currentYear={currentYear}
         loading={summaryLoading}
-      />
-
-      {/* Year Navigation */}
-      <YearPaginator
-        currentYear={currentYear}
-        availableYears={summary?.availableYears || []}
-        onYearChange={handleYearChange}
       />
 
       {/* Monthly Grid */}

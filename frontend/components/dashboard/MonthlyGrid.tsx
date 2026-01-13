@@ -42,6 +42,25 @@ export function MonthlyGrid({
     }
   })
 
+  // Filter months that have spending data
+  const monthsWithSpending = monthlyData.filter((m) => m.totalArs > 0)
+
+  // Find the month with highest spending (using ARS as primary)
+  const highestSpendingMonth =
+    monthsWithSpending.length > 0
+      ? monthsWithSpending.reduce((highest, current) =>
+          current.totalArs > highest.totalArs ? current : highest
+        ).month
+      : null
+
+  // Find the month with lowest spending (only if there are at least 2 months with data)
+  const lowestSpendingMonth =
+    monthsWithSpending.length > 1
+      ? monthsWithSpending.reduce((lowest, current) =>
+          current.totalArs < lowest.totalArs ? current : lowest
+        ).month
+      : null
+
   if (loading) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -72,6 +91,8 @@ export function MonthlyGrid({
             statements={monthStatements}
             onStatementClick={onStatementClick}
             onUploadSuccess={onUploadSuccess}
+            isHighestSpending={month === highestSpendingMonth}
+            isLowestSpending={month === lowestSpendingMonth}
           />
         )
       })}
