@@ -1,134 +1,121 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { statementsApi } from '@/lib/api'
-import FileUpload from '@/components/FileUpload'
-
-interface Statement {
-  id: string
-  originalFilename: string
-  uploadDate: string
-  status: string
-  totalArs: number | null
-  totalUsd: number | null
-  dueDate: string | null
-}
+import { DashboardCharts, YearPaginator, MonthlyGrid } from '@/components/dashboard'
+import { Statement, StatementSummaryResponse } from '@/lib/types/dashboard'
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
+  const [summary, setSummary] = useState<StatementSummaryResponse | null>(null)
   const [statements, setStatements] = useState<Statement[]>([])
   const [loading, setLoading] = useState(true)
+  const [summaryLoading, setSummaryLoading] = useState(true)
 
-  const fetchStatements = async () => {
+  const fetchSummary = useCallback(async (year: number) => {
     try {
-      const data = await statementsApi.getAll()
+      setSummaryLoading(true)
+      const data = await statementsApi.getSummary(year)
+      setSummary(data)
+    } catch (error) {
+      console.error('Failed to fetch summary:', error)
+    } finally {
+      setSummaryLoading(false)
+    }
+  }, [])
+
+  const fetchStatements = useCallback(async (year: number) => {
+    try {
+      setLoading(true)
+      const data = await statementsApi.getAll(year)
       setStatements(data)
     } catch (error) {
       console.error('Failed to fetch statements:', error)
     } finally {
       setLoading(false)
     }
-  }
-
-  useEffect(() => {
-    fetchStatements()
   }, [])
 
-  const handleUploadSuccess = () => {
-    fetchStatements()
+  useEffect(() => {
+    fetchSummary(currentYear)
+    fetchStatements(currentYear)
+  }, [currentYear, fetchSummary, fetchStatements])
+
+  const handleYearChange = (year: number) => {
+    setCurrentYear(year)
   }
 
-  const getStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      processing: 'bg-blue-100 text-blue-800',
-      completed: 'bg-green-100 text-green-800',
-      failed: 'bg-red-100 text-red-800',
-    }
-    return styles[status] || 'bg-gray-100 text-gray-800'
+  const handleStatementClick = (id: string) => {
+    router.push(`/dashboard/statements/${id}`)
   }
+
+  const handleUploadSuccess = () => {
+    // Refresh both summary and statements
+    fetchSummary(currentYear)
+    fetchStatements(currentYear)
+  }
+
+  // Calculate year totals for display
+  const yearTotalArs = summary?.yearSummary.totalArs || 0
+  const yearTotalUsd = summary?.yearSummary.totalUsd || 0
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold">My Statements</h1>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <div className="text-right">
+          <p className="text-sm text-gray-500">Year Total</p>
+          <p className="text-lg font-semibold text-gray-900">
+            {new Intl.NumberFormat('es-AR', {
+              style: 'currency',
+              currency: 'ARS',
+              maximumFractionDigits: 0,
+            }).format(yearTotalArs)}
+            {yearTotalUsd > 0 && (
+              <span className="ml-2 text-gray-600">
+                +{' '}
+                {new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: 'USD',
+                  maximumFractionDigits: 0,
+                }).format(yearTotalUsd)}
+              </span>
+            )}
+          </p>
+        </div>
       </div>
 
-      <div className="mb-8">
-        <FileUpload onSuccess={handleUploadSuccess} />
-      </div>
+      {/* Charts Section */}
+      <DashboardCharts
+        summary={summary}
+        currentYear={currentYear}
+        loading={summaryLoading}
+      />
 
-      {loading ? (
-        <div className="text-center py-8">Loading...</div>
-      ) : statements.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          No statements yet. Upload your first credit card statement above.
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  File
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Upload Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Total ARS
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Total USD
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {statements.map((statement) => (
-                <tr key={statement.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {statement.originalFilename}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {new Date(statement.uploadDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 py-1 text-xs rounded-full ${getStatusBadge(statement.status)}`}
-                    >
-                      {statement.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {statement.totalArs
-                      ? `$${Number(statement.totalArs).toLocaleString()}`
-                      : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {statement.totalUsd
-                      ? `US$${Number(statement.totalUsd).toLocaleString()}`
-                      : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Link
-                      href={`/dashboard/statements/${statement.id}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      View
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {/* Year Navigation */}
+      <YearPaginator
+        currentYear={currentYear}
+        availableYears={summary?.availableYears || []}
+        onYearChange={handleYearChange}
+      />
+
+      {/* Monthly Grid */}
+      <div>
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">
+          Monthly Statements
+        </h2>
+        <MonthlyGrid
+          year={currentYear}
+          monthlyData={summary?.yearSummary.monthlyData || []}
+          statements={statements}
+          onStatementClick={handleStatementClick}
+          onUploadSuccess={handleUploadSuccess}
+          loading={loading}
+        />
+      </div>
     </div>
   )
 }

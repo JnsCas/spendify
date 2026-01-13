@@ -12,12 +12,14 @@
     "test:coverage": "jest --config ./__tests__/jest.config.js --coverage"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@tanstack/react-table": "^8.11.2",
     "axios": "^1.6.3",
     "clsx": "^2.1.0",
     "next": "14.0.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "recharts": "^3.6.0",
     "tailwind-merge": "^2.2.0",
     "zustand": "^4.4.7"
   },

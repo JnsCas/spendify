@@ -38,8 +38,17 @@ export const authApi = {
 
 // Statements API
 export const statementsApi = {
-  getAll: async () => {
-    const { data } = await api.get('/statements')
+  getAll: async (year?: number, month?: number) => {
+    const params = new URLSearchParams()
+    if (year) params.append('year', year.toString())
+    if (month) params.append('month', month.toString())
+    const query = params.toString()
+    const { data } = await api.get(`/statements${query ? `?${query}` : ''}`)
+    return data
+  },
+  getSummary: async (year?: number) => {
+    const params = year ? `?year=${year}` : ''
+    const { data } = await api.get(`/statements/summary${params}`)
     return data
   },
   getOne: async (id: string) => {
