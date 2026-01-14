@@ -351,7 +351,6 @@ describe('StatementsService', () => {
       expect(statementQueue.add).toHaveBeenCalledTimes(3);
       expect(result.statements).toHaveLength(3);
       expect(result.duplicates).toHaveLength(0);
-      expect(result.totalQueued).toBe(3);
     });
 
     it('should create upload directory once for multiple files', async () => {
@@ -374,7 +373,7 @@ describe('StatementsService', () => {
       expect(fs.mkdirSync).toHaveBeenCalledTimes(1);
     });
 
-    it('should return correct response structure', async () => {
+    it('should return Statement entities in result', async () => {
       const mockFile = {
         originalname: 'test.pdf',
         buffer: Buffer.from('test'),
@@ -393,17 +392,9 @@ describe('StatementsService', () => {
 
       const result = await service.createBulk(mockUserId, [mockFile]);
 
-      expect(result).toEqual({
-        statements: [
-          {
-            id: 'test-id',
-            originalFilename: 'test.pdf',
-            status: StatementStatus.PENDING,
-          },
-        ],
-        duplicates: [],
-        totalQueued: 1,
-      });
+      expect(result.statements).toHaveLength(1);
+      expect(result.statements[0]).toEqual(mockStatement);
+      expect(result.duplicates).toEqual([]);
     });
 
     it('should detect duplicate files and skip them', async () => {
@@ -433,20 +424,20 @@ describe('StatementsService', () => {
       const result = await service.createBulk(mockUserId, mockFiles);
 
       expect(result.statements).toHaveLength(1);
+      expect(result.statements[0]).toEqual(newStatement);
       expect(result.duplicates).toHaveLength(1);
       expect(result.duplicates[0]).toEqual({
         originalFilename: 'statement1.pdf',
         existingStatementId: 'existing-id',
         existingFilename: 'existing.pdf',
       });
-      expect(result.totalQueued).toBe(1);
       expect(fs.writeFileSync).toHaveBeenCalledTimes(1);
       expect(statementQueue.add).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('getStatuses', () => {
-    it('should return statuses for multiple statement IDs', async () => {
+  describe('findByIds', () => {
+    it('should return statements for multiple IDs', async () => {
       const ids = ['id-1', 'id-2', 'id-3'];
       const mockStatements = [
         createMockStatement({ id: 'id-1', status: StatementStatus.COMPLETED }),
@@ -456,28 +447,23 @@ describe('StatementsService', () => {
 
       statementRepository.findManyByIds.mockResolvedValue(mockStatements);
 
-      const result = await service.getStatuses(ids, mockUserId);
+      const result = await service.findByIds(ids, mockUserId);
 
       expect(statementRepository.findManyByIds).toHaveBeenCalledWith(ids, mockUserId);
-      expect(result.statuses).toHaveLength(3);
-      expect(result.statuses[0]).toEqual({
-        id: 'id-1',
-        status: StatementStatus.COMPLETED,
-        errorMessage: null,
-      });
-      expect(result.statuses[2]).toEqual({
-        id: 'id-3',
-        status: StatementStatus.FAILED,
-        errorMessage: 'Parse error',
-      });
+      expect(result).toHaveLength(3);
+      expect(result[0].id).toBe('id-1');
+      expect(result[0].status).toBe(StatementStatus.COMPLETED);
+      expect(result[2].id).toBe('id-3');
+      expect(result[2].status).toBe(StatementStatus.FAILED);
+      expect(result[2].errorMessage).toBe('Parse error');
     });
 
     it('should return empty array for no matching IDs', async () => {
       statementRepository.findManyByIds.mockResolvedValue([]);
 
-      const result = await service.getStatuses(['nonexistent'], mockUserId);
+      const result = await service.findByIds(['nonexistent'], mockUserId);
 
-      expect(result.statuses).toEqual([]);
+      expect(result).toEqual([]);
     });
   });
 
@@ -488,7 +474,7 @@ describe('StatementsService', () => {
       const result = await service.hasAnyByUser(mockUserId);
 
       expect(statementRepository.hasAnyByUser).toHaveBeenCalledWith(mockUserId);
-      expect(result).toEqual({ hasStatements: true });
+      expect(result).toBe(true);
     });
 
     it('should return false when user has no statements', async () => {
@@ -496,7 +482,7 @@ describe('StatementsService', () => {
 
       const result = await service.hasAnyByUser(mockUserId);
 
-      expect(result).toEqual({ hasStatements: false });
+      expect(result).toBe(false);
     });
   });
 

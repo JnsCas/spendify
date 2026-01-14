@@ -5,14 +5,19 @@ import * as crypto from 'crypto';
 import { Statement, StatementStatus } from './statement.entity';
 import { StatementRepository, MonthlyData } from './statement.repository';
 import { ExpenseRepository, CardBreakdown } from '../expenses/expense.repository';
-import {
-  BulkUploadResponseDto,
-  StatementStatusResponseDto,
-  HasStatementsResponseDto,
-  DuplicateFileDto,
-} from './dto/bulk-upload-response.dto';
 import * as fs from 'fs';
 import * as path from 'path';
+
+export interface DuplicateFile {
+  originalFilename: string;
+  existingStatementId: string;
+  existingFilename: string;
+}
+
+export interface BulkUploadResult {
+  statements: Statement[];
+  duplicates: DuplicateFile[];
+}
 
 export interface StatementSummaryResponse {
   availableYears: number[];
@@ -181,14 +186,14 @@ export class StatementsService {
   async createBulk(
     userId: string,
     files: Express.Multer.File[],
-  ): Promise<BulkUploadResponseDto> {
+  ): Promise<BulkUploadResult> {
     const uploadDir = path.join('uploads', userId);
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
-    const statements: BulkUploadResponseDto['statements'] = [];
-    const duplicates: DuplicateFileDto[] = [];
+    const statements: Statement[] = [];
+    const duplicates: DuplicateFile[] = [];
 
     for (const file of files) {
       // Calculate file hash
@@ -226,37 +231,20 @@ export class StatementsService {
         statementId: savedStatement.id,
       });
 
-      statements.push({
-        id: savedStatement.id,
-        originalFilename: savedStatement.originalFilename,
-        status: savedStatement.status,
-      });
+      statements.push(savedStatement);
     }
 
     return {
       statements,
       duplicates,
-      totalQueued: statements.length,
     };
   }
 
-  async getStatuses(
-    ids: string[],
-    userId: string,
-  ): Promise<StatementStatusResponseDto> {
-    const statements = await this.statementRepository.findManyByIds(ids, userId);
-
-    return {
-      statuses: statements.map((s) => ({
-        id: s.id,
-        status: s.status,
-        errorMessage: s.errorMessage,
-      })),
-    };
+  async findByIds(ids: string[], userId: string): Promise<Statement[]> {
+    return this.statementRepository.findManyByIds(ids, userId);
   }
 
-  async hasAnyByUser(userId: string): Promise<HasStatementsResponseDto> {
-    const hasStatements = await this.statementRepository.hasAnyByUser(userId);
-    return { hasStatements };
+  async hasAnyByUser(userId: string): Promise<boolean> {
+    return this.statementRepository.hasAnyByUser(userId);
   }
 }

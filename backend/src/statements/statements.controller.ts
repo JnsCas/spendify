@@ -18,10 +18,7 @@ import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '../users/user.entity';
-import {
-  StatementsService,
-  StatementSummaryResponse,
-} from './statements.service';
+import { StatementsService, StatementSummaryResponse } from './statements.service';
 import { Statement } from './statement.entity';
 import {
   BulkUploadResponseDto,
@@ -75,7 +72,17 @@ export class StatementsController {
       }
     }
 
-    return this.statementsService.createBulk(user.id, files);
+    const result = await this.statementsService.createBulk(user.id, files);
+
+    return {
+      statements: result.statements.map((s) => ({
+        id: s.id,
+        originalFilename: s.originalFilename,
+        status: s.status,
+      })),
+      duplicates: result.duplicates,
+      totalQueued: result.statements.length,
+    };
   }
 
   @Get('status')
@@ -84,12 +91,21 @@ export class StatementsController {
     @Query('ids') ids: string,
   ): Promise<StatementStatusResponseDto> {
     const idArray = ids ? ids.split(',').filter((id) => id.trim()) : [];
-    return this.statementsService.getStatuses(idArray, user.id);
+    const statements = await this.statementsService.findByIds(idArray, user.id);
+
+    return {
+      statuses: statements.map((s) => ({
+        id: s.id,
+        status: s.status,
+        errorMessage: s.errorMessage,
+      })),
+    };
   }
 
   @Get('has-any')
   async hasAny(@CurrentUser() user: User): Promise<HasStatementsResponseDto> {
-    return this.statementsService.hasAnyByUser(user.id);
+    const hasStatements = await this.statementsService.hasAnyByUser(user.id);
+    return { hasStatements };
   }
 
   @Get()
