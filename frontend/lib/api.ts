@@ -1,4 +1,9 @@
 import axios from 'axios'
+import type {
+  BulkUploadResponse,
+  StatementStatusResponse,
+  HasStatementsResponse,
+} from './types/bulk-upload'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
@@ -72,6 +77,26 @@ export const statementsApi = {
   },
   exportCsv: (id: string) => {
     return `${API_URL}/api/statements/${id}/export/csv`
+  },
+  uploadBulk: async (files: File[]): Promise<BulkUploadResponse> => {
+    const formData = new FormData()
+    files.forEach((file) => formData.append('files', file))
+    const { data } = await api.post('/statements/upload-bulk', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data
+  },
+  getStatuses: async (ids: string[]): Promise<StatementStatusResponse> => {
+    const { data } = await api.get(`/statements/status?ids=${ids.join(',')}`)
+    return data
+  },
+  hasAny: async (): Promise<HasStatementsResponse> => {
+    const { data } = await api.get('/statements/has-any')
+    return data
+  },
+  getProcessing: async () => {
+    const { data } = await api.get('/statements/processing')
+    return data
   },
 }
 

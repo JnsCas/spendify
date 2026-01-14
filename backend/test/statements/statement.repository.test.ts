@@ -229,4 +229,63 @@ describe('StatementRepository', () => {
       expect(result[0].statementCount).toBe(0);
     });
   });
+
+  describe('findManyByIds', () => {
+    it('should find statements by multiple IDs for a user', async () => {
+      const ids = [
+        '123e4567-e89b-12d3-a456-426614174001',
+        '123e4567-e89b-12d3-a456-426614174002',
+        '123e4567-e89b-12d3-a456-426614174003',
+      ];
+      const mockStatements = [
+        createMockStatement({ id: ids[0], userId: mockUserId }),
+        createMockStatement({ id: ids[1], userId: mockUserId }),
+        createMockStatement({ id: ids[2], userId: mockUserId }),
+      ];
+      typeOrmRepository.find!.mockResolvedValue(mockStatements);
+
+      const result = await repository.findManyByIds(ids, mockUserId);
+
+      expect(typeOrmRepository.find).toHaveBeenCalledWith({
+        where: {
+          id: expect.anything(),
+          userId: mockUserId,
+        },
+        select: ['id', 'status', 'errorMessage'],
+      });
+      expect(result).toEqual(mockStatements);
+    });
+
+    it('should return empty array when no statements match', async () => {
+      // Invalid UUIDs should be filtered out
+      const result = await repository.findManyByIds(['nonexistent'], mockUserId);
+      expect(result).toEqual([]);
+    });
+
+    it('should return empty array for empty IDs array', async () => {
+      const result = await repository.findManyByIds([], mockUserId);
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('hasAnyByUser', () => {
+    it('should return true when user has statements', async () => {
+      typeOrmRepository.count!.mockResolvedValue(5);
+
+      const result = await repository.hasAnyByUser(mockUserId);
+
+      expect(typeOrmRepository.count).toHaveBeenCalledWith({
+        where: { userId: mockUserId },
+      });
+      expect(result).toBe(true);
+    });
+
+    it('should return false when user has no statements', async () => {
+      typeOrmRepository.count!.mockResolvedValue(0);
+
+      const result = await repository.hasAnyByUser(mockUserId);
+
+      expect(result).toBe(false);
+    });
+  });
 });

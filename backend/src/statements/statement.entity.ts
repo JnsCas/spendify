@@ -60,6 +60,9 @@ export class Statement {
   @Column({ name: 'error_message', type: 'varchar', nullable: true })
   errorMessage: string | null;
 
+  @Column({ name: 'file_hash', type: 'varchar', nullable: true })
+  fileHash: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

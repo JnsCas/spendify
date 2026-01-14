@@ -1,9 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { PlusIcon, DocumentIcon } from '@heroicons/react/24/outline'
+import { DocumentIcon } from '@heroicons/react/24/outline'
 import { MONTH_NAMES, Statement } from '@/lib/types/dashboard'
-import FileUpload from '@/components/FileUpload'
 
 interface MonthCardProps {
   month: number
@@ -13,7 +12,6 @@ interface MonthCardProps {
   statementCount: number
   statements: Statement[]
   onStatementClick: (id: string) => void
-  onUploadSuccess: () => void
   isHighestSpending?: boolean
   isLowestSpending?: boolean
 }
@@ -41,20 +39,13 @@ export function MonthCard({
   statementCount,
   statements,
   onStatementClick,
-  onUploadSuccess,
   isHighestSpending = false,
   isLowestSpending = false,
 }: MonthCardProps) {
-  const [showUpload, setShowUpload] = useState(false)
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(true)
 
   const monthName = MONTH_NAMES[month - 1]
   const hasStatements = statementCount > 0
-
-  const handleUploadSuccess = () => {
-    setShowUpload(false)
-    onUploadSuccess()
-  }
 
   // Determine card styling based on spending status
   const getCardClasses = () => {
@@ -148,30 +139,9 @@ export function MonthCard({
             )}
           </>
         ) : (
-          <p className="mb-3 text-center text-sm text-gray-400">
+          <p className="text-center text-sm text-gray-400">
             No statements yet
           </p>
-        )}
-
-        {/* Upload section */}
-        {showUpload ? (
-          <div className="border-t border-gray-100 pt-3">
-            <FileUpload onSuccess={handleUploadSuccess} />
-            <button
-              onClick={() => setShowUpload(false)}
-              className="mt-2 w-full text-center text-sm text-gray-500 hover:text-gray-700"
-            >
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowUpload(true)}
-            className="flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-gray-300 py-2 text-sm text-gray-500 transition-colors hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600"
-          >
-            <PlusIcon className="h-4 w-4" />
-            <span>Upload</span>
-          </button>
         )}
       </div>
     </div>

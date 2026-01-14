@@ -25,7 +25,7 @@ import { InviteCodesModule } from './invite-codes/invite-codes.module';
     ThrottlerModule.forRoot([
       {
         ttl: 60000, // 1 minute window
-        limit: 10, // 10 requests per minute for general endpoints
+        limit: 100, // 100 requests per minute for general endpoints
       },
     ]),
 
