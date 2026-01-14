@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/lib/store'
-import { authApi } from '@/lib/api'
+import { authApi, statementsApi } from '@/lib/api'
 
 export default function DashboardLayout({
   children,
@@ -13,6 +13,7 @@ export default function DashboardLayout({
 }) {
   const router = useRouter()
   const { user, isAuthenticated, isAdmin, logout, hydrate, setIsAdmin } = useAuthStore()
+  const [isFirstTimeUser, setIsFirstTimeUser] = useState(false)
 
   useEffect(() => {
     hydrate()
@@ -41,6 +42,16 @@ export default function DashboardLayout({
     }
   }, [isAuthenticated, setIsAdmin])
 
+  useEffect(() => {
+    const checkFirstTimeUser = async () => {
+      const response = await statementsApi.hasAny()
+      setIsFirstTimeUser(!response.hasStatements)
+    }
+    if (isAuthenticated) {
+      checkFirstTimeUser()
+    }
+  }, [isAuthenticated])
+
   const handleLogout = () => {
     logout()
     router.push('/')
@@ -53,6 +64,16 @@ export default function DashboardLayout({
           <div className="flex items-center gap-6">
             <Link href="/dashboard" className="text-xl font-bold">
               Spendify
+            </Link>
+            <Link
+              href="/dashboard/import"
+              className={`text-sm font-medium transition ${
+                isFirstTimeUser
+                  ? 'bg-blue-600 text-white px-3 py-1.5 rounded-lg animate-pulse hover:bg-blue-700'
+                  : 'text-blue-600 hover:text-blue-800'
+              }`}
+            >
+              {isFirstTimeUser ? 'Start Here: Import' : 'Import'}
             </Link>
             {isAdmin && (
               <Link

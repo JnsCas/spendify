@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Statement, StatementStatus } from './statement.entity';
 
 export interface CreateStatementData {
@@ -9,6 +9,7 @@ export interface CreateStatementData {
   originalFilename: string;
   filePath: string;
   status: StatementStatus;
+  fileHash?: string;
 }
 
 export interface MonthlyData {
@@ -133,5 +134,49 @@ export class StatementRepository {
       totalUsd: parseFloat(r.totalUsd) || 0,
       statementCount: parseInt(r.statementCount, 10),
     }));
+  }
+
+  async findManyByIds(ids: string[], userId: string): Promise<Statement[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    // Filter out invalid UUIDs to prevent DB errors
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const validIds = ids.filter((id) => uuidRegex.test(id));
+
+    if (validIds.length === 0) {
+      return [];
+    }
+
+    return this.repository.find({
+      where: {
+        id: In(validIds),
+        userId,
+      },
+      select: ['id', 'status', 'errorMessage'],
+    });
+  }
+
+  async hasAnyByUser(userId: string): Promise<boolean> {
+    const count = await this.repository.count({ where: { userId } });
+    return count > 0;
+  }
+
+  async findByFileHash(fileHash: string, userId: string): Promise<Statement | null> {
+    return this.repository.findOne({
+      where: { fileHash, userId },
+      select: ['id', 'originalFilename', 'status', 'statementDate'],
+    });
+  }
+
+  async findPendingOrProcessing(userId: string): Promise<Statement[]> {
+    return this.repository.find({
+      where: {
+        userId,
+        status: In(['pending', 'processing'] as StatementStatus[]),
+      },
+      order: { createdAt: 'DESC' },
+    });
   }
 }

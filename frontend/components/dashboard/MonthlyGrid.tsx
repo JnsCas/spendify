@@ -8,7 +8,6 @@ interface MonthlyGridProps {
   monthlyData: MonthlyData[]
   statements: Statement[]
   onStatementClick: (id: string) => void
-  onUploadSuccess: () => void
   loading: boolean
 }
 
@@ -17,7 +16,6 @@ export function MonthlyGrid({
   monthlyData,
   statements,
   onStatementClick,
-  onUploadSuccess,
   loading,
 }: MonthlyGridProps) {
   // Get current date info
@@ -90,7 +88,6 @@ export function MonthlyGrid({
             statementCount={monthData?.statementCount || 0}
             statements={monthStatements}
             onStatementClick={onStatementClick}
-            onUploadSuccess={onUploadSuccess}
             isHighestSpending={month === highestSpendingMonth}
             isLowestSpending={month === lowestSpendingMonth}
           />

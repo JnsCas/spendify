@@ -328,4 +328,272 @@ describe('Statements (e2e)', () => {
         .expect(401);
     });
   });
+
+  describe('GET /statements/has-any', () => {
+    it('should return false for new user with no statements', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/statements/has-any')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body).toEqual({ hasStatements: false });
+    });
+
+    it('should return true after user has statements', async () => {
+      await createStatement();
+
+      const response = await request(app.getHttpServer())
+        .get('/statements/has-any')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body).toEqual({ hasStatements: true });
+    });
+
+    it('should reject request without authentication', async () => {
+      await request(app.getHttpServer())
+        .get('/statements/has-any')
+        .expect(401);
+    });
+  });
+
+  describe('GET /statements/status', () => {
+    it('should return statuses for specified IDs', async () => {
+      const stmt1 = await createStatement({ status: StatementStatus.COMPLETED });
+      const stmt2 = await createStatement({ status: StatementStatus.PROCESSING });
+      const stmt3 = await createStatement({
+        status: StatementStatus.FAILED,
+        errorMessage: 'Parse error',
+      });
+
+      const ids = [stmt1.id, stmt2.id, stmt3.id].join(',');
+
+      const response = await request(app.getHttpServer())
+        .get(`/statements/status?ids=${ids}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body.statuses).toHaveLength(3);
+
+      const completedStatus = response.body.statuses.find(
+        (s: { id: string }) => s.id === stmt1.id,
+      );
+      expect(completedStatus.status).toBe('completed');
+
+      const failedStatus = response.body.statuses.find(
+        (s: { id: string }) => s.id === stmt3.id,
+      );
+      expect(failedStatus.status).toBe('failed');
+      expect(failedStatus.errorMessage).toBe('Parse error');
+    });
+
+    it('should not return statuses for other users statements', async () => {
+      // Create statement for current user
+      const ownStatement = await createStatement();
+
+      // Create another user and their statement
+      const inviteCode = await inviteCodesService.generate();
+      const otherUserResponse = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({
+          email: 'otheruser@example.com',
+          password: 'password123',
+          name: 'Other User',
+          inviteCode: inviteCode.code,
+        });
+
+      const otherUserId = otherUserResponse.body.user.id;
+      const statementRepo = dataSource.getRepository(Statement);
+      const otherStatement = await statementRepo.save(
+        statementRepo.create({
+          userId: otherUserId,
+          originalFilename: 'other.pdf',
+          filePath: '/uploads/other/other.pdf',
+          uploadDate: new Date(),
+          status: StatementStatus.COMPLETED,
+        }),
+      );
+
+      // Request with both IDs but only should see own
+      const ids = [ownStatement.id, otherStatement.id].join(',');
+
+      const response = await request(app.getHttpServer())
+        .get(`/statements/status?ids=${ids}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body.statuses).toHaveLength(1);
+      expect(response.body.statuses[0].id).toBe(ownStatement.id);
+    });
+
+    it('should return empty array for non-existent IDs', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/statements/status?ids=nonexistent-id')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body.statuses).toEqual([]);
+    });
+
+    it('should reject request without authentication', async () => {
+      await request(app.getHttpServer())
+        .get('/statements/status?ids=some-id')
+        .expect(401);
+    });
+  });
+
+  describe('GET /statements/processing', () => {
+    it('should return pending and processing statements only', async () => {
+      await createStatement({ status: StatementStatus.PENDING });
+      await createStatement({ status: StatementStatus.PROCESSING });
+      await createStatement({ status: StatementStatus.COMPLETED });
+      await createStatement({ status: StatementStatus.FAILED });
+
+      const response = await request(app.getHttpServer())
+        .get('/statements/processing')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveLength(2);
+      response.body.forEach((statement: Statement) => {
+        expect(['pending', 'processing']).toContain(statement.status);
+      });
+    });
+
+    it('should return empty array when no pending or processing statements', async () => {
+      await createStatement({ status: StatementStatus.COMPLETED });
+      await createStatement({ status: StatementStatus.FAILED });
+
+      const response = await request(app.getHttpServer())
+        .get('/statements/processing')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body).toEqual([]);
+    });
+
+    it('should not return other users pending/processing statements', async () => {
+      // Create pending statement for current user
+      await createStatement({ status: StatementStatus.PENDING });
+
+      // Create another user and their pending statement
+      const inviteCode = await inviteCodesService.generate();
+      const otherUserResponse = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({
+          email: 'otheruser2@example.com',
+          password: 'password123',
+          name: 'Other User 2',
+          inviteCode: inviteCode.code,
+        });
+
+      const otherUserId = otherUserResponse.body.user.id;
+      const statementRepo = dataSource.getRepository(Statement);
+      await statementRepo.save(
+        statementRepo.create({
+          userId: otherUserId,
+          originalFilename: 'other.pdf',
+          filePath: '/uploads/other/other.pdf',
+          uploadDate: new Date(),
+          status: StatementStatus.PENDING,
+        }),
+      );
+
+      const response = await request(app.getHttpServer())
+        .get('/statements/processing')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body).toHaveLength(1);
+      expect(response.body[0].userId).toBe(userId);
+    });
+
+    it('should reject request without authentication', async () => {
+      await request(app.getHttpServer())
+        .get('/statements/processing')
+        .expect(401);
+    });
+  });
+
+  describe('POST /statements/upload-bulk', () => {
+    it('should accept multiple PDF files and return statement IDs', async () => {
+      // Use different content for each file to avoid duplicate detection
+      const pdfContent1 = Buffer.from('%PDF-1.4 test content 1');
+      const pdfContent2 = Buffer.from('%PDF-1.4 test content 2');
+      const pdfContent3 = Buffer.from('%PDF-1.4 test content 3');
+
+      const response = await request(app.getHttpServer())
+        .post('/statements/upload-bulk')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .attach('files', pdfContent1, {
+          filename: 'statement1.pdf',
+          contentType: 'application/pdf',
+        })
+        .attach('files', pdfContent2, {
+          filename: 'statement2.pdf',
+          contentType: 'application/pdf',
+        })
+        .attach('files', pdfContent3, {
+          filename: 'statement3.pdf',
+          contentType: 'application/pdf',
+        })
+        .expect(201);
+
+      expect(response.body.statements).toHaveLength(3);
+      expect(response.body.totalQueued).toBe(3);
+
+      response.body.statements.forEach(
+        (stmt: { id: string; originalFilename: string; status: string }) => {
+          expect(stmt.id).toBeDefined();
+          expect(stmt.originalFilename).toMatch(/statement\d\.pdf/);
+          expect(stmt.status).toBe('pending');
+        },
+      );
+    });
+
+    it('should create statements in database with pending status', async () => {
+      const pdfContent = Buffer.from('%PDF-1.4 test content');
+
+      const response = await request(app.getHttpServer())
+        .post('/statements/upload-bulk')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .attach('files', pdfContent, {
+          filename: 'test.pdf',
+          contentType: 'application/pdf',
+        })
+        .expect(201);
+
+      const statementId = response.body.statements[0].id;
+      const statementRepo = dataSource.getRepository(Statement);
+      const statement = await statementRepo.findOne({
+        where: { id: statementId },
+      });
+
+      expect(statement).toBeDefined();
+      expect(statement!.status).toBe(StatementStatus.PENDING);
+      expect(statement!.userId).toBe(userId);
+    });
+
+    it('should reject non-PDF files', async () => {
+      const textContent = Buffer.from('This is not a PDF');
+
+      await request(app.getHttpServer())
+        .post('/statements/upload-bulk')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .attach('files', textContent, 'document.txt')
+        .expect(400);
+    });
+
+    it('should reject request without authentication', async () => {
+      const pdfContent = Buffer.from('%PDF-1.4 test content');
+
+      await request(app.getHttpServer())
+        .post('/statements/upload-bulk')
+        .attach('files', pdfContent, {
+          filename: 'statement.pdf',
+          contentType: 'application/pdf',
+        })
+        .expect(401);
+    });
+  });
 });

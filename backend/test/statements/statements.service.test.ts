@@ -31,6 +31,10 @@ describe('StatementsService', () => {
       findAllByUserFiltered: jest.fn(),
       getAvailableYears: jest.fn(),
       getMonthlyAggregates: jest.fn(),
+      findManyByIds: jest.fn(),
+      hasAnyByUser: jest.fn(),
+      findByFileHash: jest.fn(),
+      findPendingOrProcessing: jest.fn(),
     };
 
     const mockExpenseRepository = {
@@ -314,6 +318,219 @@ describe('StatementsService', () => {
       expect(result.yearSummary.totalUsd).toBe(0);
       expect(result.yearSummary.monthlyData).toEqual([]);
       expect(result.cardBreakdown).toEqual([]);
+    });
+  });
+
+  describe('createBulk', () => {
+    it('should create multiple statements and queue all for processing', async () => {
+      const mockFiles = [
+        { originalname: 'statement1.pdf', buffer: Buffer.from('content1') },
+        { originalname: 'statement2.pdf', buffer: Buffer.from('content2') },
+        { originalname: 'statement3.pdf', buffer: Buffer.from('content3') },
+      ] as Express.Multer.File[];
+
+      const mockStatements = mockFiles.map((file, index) =>
+        createMockStatement({
+          id: `statement-${index}`,
+          userId: mockUserId,
+          originalFilename: file.originalname,
+        })
+      );
+
+      // No duplicates
+      statementRepository.findByFileHash.mockResolvedValue(null);
+      mockStatements.forEach((stmt, index) => {
+        statementRepository.create.mockResolvedValueOnce(mockStatements[index]);
+      });
+
+      const result = await service.createBulk(mockUserId, mockFiles);
+
+      expect(fs.mkdirSync).toHaveBeenCalledTimes(1);
+      expect(fs.writeFileSync).toHaveBeenCalledTimes(3);
+      expect(statementRepository.create).toHaveBeenCalledTimes(3);
+      expect(statementQueue.add).toHaveBeenCalledTimes(3);
+      expect(result.statements).toHaveLength(3);
+      expect(result.duplicates).toHaveLength(0);
+      expect(result.totalQueued).toBe(3);
+    });
+
+    it('should create upload directory once for multiple files', async () => {
+      const mockFiles = [
+        { originalname: 'file1.pdf', buffer: Buffer.from('1') },
+        { originalname: 'file2.pdf', buffer: Buffer.from('2') },
+      ] as Express.Multer.File[];
+
+      // No duplicates
+      statementRepository.findByFileHash.mockResolvedValue(null);
+      mockFiles.forEach(() => {
+        statementRepository.create.mockResolvedValueOnce(
+          createMockStatement({ userId: mockUserId })
+        );
+      });
+
+      await service.createBulk(mockUserId, mockFiles);
+
+      expect(fs.existsSync).toHaveBeenCalledTimes(1);
+      expect(fs.mkdirSync).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return correct response structure', async () => {
+      const mockFile = {
+        originalname: 'test.pdf',
+        buffer: Buffer.from('test'),
+      } as Express.Multer.File;
+
+      const mockStatement = createMockStatement({
+        id: 'test-id',
+        userId: mockUserId,
+        originalFilename: 'test.pdf',
+        status: StatementStatus.PENDING,
+      });
+
+      // No duplicates
+      statementRepository.findByFileHash.mockResolvedValue(null);
+      statementRepository.create.mockResolvedValue(mockStatement);
+
+      const result = await service.createBulk(mockUserId, [mockFile]);
+
+      expect(result).toEqual({
+        statements: [
+          {
+            id: 'test-id',
+            originalFilename: 'test.pdf',
+            status: StatementStatus.PENDING,
+          },
+        ],
+        duplicates: [],
+        totalQueued: 1,
+      });
+    });
+
+    it('should detect duplicate files and skip them', async () => {
+      const mockFiles = [
+        { originalname: 'statement1.pdf', buffer: Buffer.from('content1') },
+        { originalname: 'statement2.pdf', buffer: Buffer.from('content2') },
+      ] as Express.Multer.File[];
+
+      const existingStatement = createMockStatement({
+        id: 'existing-id',
+        userId: mockUserId,
+        originalFilename: 'existing.pdf',
+      });
+
+      const newStatement = createMockStatement({
+        id: 'new-id',
+        userId: mockUserId,
+        originalFilename: 'statement2.pdf',
+      });
+
+      // First file is a duplicate, second is new
+      statementRepository.findByFileHash
+        .mockResolvedValueOnce(existingStatement)
+        .mockResolvedValueOnce(null);
+      statementRepository.create.mockResolvedValue(newStatement);
+
+      const result = await service.createBulk(mockUserId, mockFiles);
+
+      expect(result.statements).toHaveLength(1);
+      expect(result.duplicates).toHaveLength(1);
+      expect(result.duplicates[0]).toEqual({
+        originalFilename: 'statement1.pdf',
+        existingStatementId: 'existing-id',
+        existingFilename: 'existing.pdf',
+      });
+      expect(result.totalQueued).toBe(1);
+      expect(fs.writeFileSync).toHaveBeenCalledTimes(1);
+      expect(statementQueue.add).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('getStatuses', () => {
+    it('should return statuses for multiple statement IDs', async () => {
+      const ids = ['id-1', 'id-2', 'id-3'];
+      const mockStatements = [
+        createMockStatement({ id: 'id-1', status: StatementStatus.COMPLETED }),
+        createMockStatement({ id: 'id-2', status: StatementStatus.PROCESSING }),
+        createMockStatement({ id: 'id-3', status: StatementStatus.FAILED, errorMessage: 'Parse error' }),
+      ];
+
+      statementRepository.findManyByIds.mockResolvedValue(mockStatements);
+
+      const result = await service.getStatuses(ids, mockUserId);
+
+      expect(statementRepository.findManyByIds).toHaveBeenCalledWith(ids, mockUserId);
+      expect(result.statuses).toHaveLength(3);
+      expect(result.statuses[0]).toEqual({
+        id: 'id-1',
+        status: StatementStatus.COMPLETED,
+        errorMessage: null,
+      });
+      expect(result.statuses[2]).toEqual({
+        id: 'id-3',
+        status: StatementStatus.FAILED,
+        errorMessage: 'Parse error',
+      });
+    });
+
+    it('should return empty array for no matching IDs', async () => {
+      statementRepository.findManyByIds.mockResolvedValue([]);
+
+      const result = await service.getStatuses(['nonexistent'], mockUserId);
+
+      expect(result.statuses).toEqual([]);
+    });
+  });
+
+  describe('hasAnyByUser', () => {
+    it('should return true when user has statements', async () => {
+      statementRepository.hasAnyByUser.mockResolvedValue(true);
+
+      const result = await service.hasAnyByUser(mockUserId);
+
+      expect(statementRepository.hasAnyByUser).toHaveBeenCalledWith(mockUserId);
+      expect(result).toEqual({ hasStatements: true });
+    });
+
+    it('should return false when user has no statements', async () => {
+      statementRepository.hasAnyByUser.mockResolvedValue(false);
+
+      const result = await service.hasAnyByUser(mockUserId);
+
+      expect(result).toEqual({ hasStatements: false });
+    });
+  });
+
+  describe('findPendingOrProcessing', () => {
+    it('should return pending and processing statements', async () => {
+      const mockStatements = [
+        createMockStatement({
+          id: 'pending-1',
+          userId: mockUserId,
+          status: StatementStatus.PENDING,
+        }),
+        createMockStatement({
+          id: 'processing-1',
+          userId: mockUserId,
+          status: StatementStatus.PROCESSING,
+        }),
+      ];
+
+      statementRepository.findPendingOrProcessing.mockResolvedValue(mockStatements);
+
+      const result = await service.findPendingOrProcessing(mockUserId);
+
+      expect(statementRepository.findPendingOrProcessing).toHaveBeenCalledWith(mockUserId);
+      expect(result).toEqual(mockStatements);
+      expect(result).toHaveLength(2);
+    });
+
+    it('should return empty array when no pending or processing statements', async () => {
+      statementRepository.findPendingOrProcessing.mockResolvedValue([]);
+
+      const result = await service.findPendingOrProcessing(mockUserId);
+
+      expect(statementRepository.findPendingOrProcessing).toHaveBeenCalledWith(mockUserId);
+      expect(result).toEqual([]);
     });
   });
 });
