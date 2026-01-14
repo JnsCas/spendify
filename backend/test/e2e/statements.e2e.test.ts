@@ -551,7 +551,7 @@ describe('Statements (e2e)', () => {
       );
     });
 
-    it('should create statements in database with pending status', async () => {
+    it('should create statements in database', async () => {
       const pdfContent = Buffer.from('%PDF-1.4 test content');
 
       const response = await request(app.getHttpServer())
@@ -570,7 +570,10 @@ describe('Statements (e2e)', () => {
       });
 
       expect(statement).toBeDefined();
-      expect(statement!.status).toBe(StatementStatus.PENDING);
+      // Status may be pending or processing depending on queue timing
+      expect([StatementStatus.PENDING, StatementStatus.PROCESSING]).toContain(
+        statement!.status,
+      );
       expect(statement!.userId).toBe(userId);
     });
 
