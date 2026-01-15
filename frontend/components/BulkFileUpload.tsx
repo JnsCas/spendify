@@ -26,7 +26,6 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
     successCount,
     failedCount,
     canUpload,
-    hasActiveTasks,
   } = useBulkUpload()
 
   const handleDrop = (e: React.DragEvent) => {

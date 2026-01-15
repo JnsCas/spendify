@@ -12,14 +12,16 @@ export interface ParsedExpense {
   purchase_date: string | null;
 }
 
+export interface ParsedStatementSummary {
+  total_ars: number | null;
+  total_usd: number | null;
+  due_date: string | null;
+  statement_date: string | null;
+}
+
 export interface ParsedStatement {
   expenses: ParsedExpense[];
-  summary: {
-    total_ars: number | null;
-    total_usd: number | null;
-    due_date: string | null;
-    statement_date: string | null;
-  };
+  summary: ParsedStatementSummary;
 }
 
 @Injectable()

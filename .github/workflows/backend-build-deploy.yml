@@ -1,0 +1,57 @@
+name: Build & Deploy Backend
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version
+        type: string
+        required: true
+
+jobs:
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: jnscas/spendify-backend:${{ inputs.version }}
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: build
+    environment: production
+
+    steps:
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          SERVER_SCRIPT_DIR: ${{ vars.SERVER_SCRIPT_DIR }}
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_PRIVATE_KEY }}
+          envs: SERVER_SCRIPT_DIR
+          script: |
+            cd $SERVER_SCRIPT_DIR
+            ./deploy.sh backend ${{ inputs.version }}
