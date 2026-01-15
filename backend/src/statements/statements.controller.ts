@@ -149,14 +149,6 @@ export class StatementsController {
     return this.statementsService.findOne(id, user.id);
   }
 
-  @Post(':id/reprocess')
-  async reprocess(
-    @Param('id') id: string,
-    @CurrentUser() user: User,
-  ): Promise<Statement> {
-    return this.statementsService.reprocess(id, user.id);
-  }
-
   @Delete(':id')
   async delete(
     @Param('id') id: string,

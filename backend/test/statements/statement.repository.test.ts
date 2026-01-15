@@ -122,17 +122,6 @@ describe('StatementRepository', () => {
     });
   });
 
-  describe('update', () => {
-    it('should update a statement', async () => {
-      const statementId = 'statement-id';
-      const updateData = { status: StatementStatus.COMPLETED };
-
-      await repository.update(statementId, updateData);
-
-      expect(typeOrmRepository.update).toHaveBeenCalledWith(statementId, updateData);
-    });
-  });
-
   describe('remove', () => {
     it('should remove a statement', async () => {
       const mockStatement = createMockStatement();

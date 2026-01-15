@@ -3,6 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
+import * as fs from 'fs';
 import { Statement, StatementStatus } from '../statements/statement.entity';
 import { ParserService } from './parser.service';
 import { ExpensesService } from '../expenses/expenses.service';
@@ -30,6 +31,8 @@ export class StatementProcessor {
     const { statementId } = job.data;
     this.logger.log(`Processing statement: ${statementId}`);
 
+    let statement: Statement | null = null;
+
     try {
       // Update status to processing
       await this.statementsRepository.update(statementId, {
@@ -37,7 +40,7 @@ export class StatementProcessor {
       });
 
       // Get statement
-      const statement = await this.statementsRepository.findOne({
+      statement = await this.statementsRepository.findOne({
         where: { id: statementId },
       });
 
@@ -52,9 +55,6 @@ export class StatementProcessor {
 
       // Use transaction to ensure all expenses are committed before status update
       await this.dataSource.transaction(async (manager) => {
-        // Delete existing expenses (for reprocessing)
-        await this.expensesService.deleteByStatement(statementId);
-
         // Create expenses
         for (const expense of parsed.expenses) {
           let cardId: string | undefined;
@@ -62,7 +62,7 @@ export class StatementProcessor {
           // Find or create card if identifier provided
           if (expense.card_identifier) {
             const card = await this.cardsService.findOrCreateByIdentifier(
-              statement.userId,
+              statement!.userId,
               expense.card_identifier,
             );
             cardId = card.id;
@@ -96,14 +96,33 @@ export class StatementProcessor {
         });
       });
 
+      // Delete PDF file after successful processing
+      this.deleteFile(statement.filePath);
+
       this.logger.log(`Successfully processed statement: ${statementId}`);
     } catch (error) {
       this.logger.error(`Failed to process statement: ${error.message}`);
+
+      // Delete PDF file on failure to avoid orphaned files
+      if (statement?.filePath) {
+        this.deleteFile(statement.filePath);
+      }
 
       await this.statementsRepository.update(statementId, {
         status: StatementStatus.FAILED,
         errorMessage: error.message,
       });
+    }
+  }
+
+  private deleteFile(filePath: string): void {
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        this.logger.log(`Deleted PDF file: ${filePath}`);
+      }
+    } catch (error) {
+      this.logger.warn(`Failed to delete PDF file ${filePath}: ${error.message}`);
     }
   }
 }

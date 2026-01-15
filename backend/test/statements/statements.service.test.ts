@@ -22,11 +22,9 @@ describe('StatementsService', () => {
   beforeEach(async () => {
     const mockStatementRepository = {
       create: jest.fn(),
-      save: jest.fn(),
       findAllByUser: jest.fn(),
       findOne: jest.fn(),
       findOneWithRelations: jest.fn(),
-      update: jest.fn(),
       remove: jest.fn(),
       findAllByUserFiltered: jest.fn(),
       getAvailableYears: jest.fn(),
@@ -172,96 +170,15 @@ describe('StatementsService', () => {
     });
   });
 
-  describe('reprocess', () => {
-    it('should reset statement status and re-queue for processing', async () => {
-      const mockStatement = createMockStatement({
-        userId: mockUserId,
-        status: StatementStatus.FAILED,
-        errorMessage: 'Previous error',
-      });
-
-      statementRepository.findOneWithRelations.mockResolvedValue(mockStatement);
-      statementRepository.save.mockResolvedValue(mockStatement);
-
-      const result = await service.reprocess(mockStatement.id, mockUserId);
-
-      expect(result.status).toBe(StatementStatus.PENDING);
-      expect(result.errorMessage).toBeNull();
-      expect(statementRepository.save).toHaveBeenCalled();
-      expect(statementQueue.add).toHaveBeenCalledWith('process', {
-        statementId: mockStatement.id,
-      });
-    });
-  });
-
   describe('delete', () => {
-    it('should delete statement and remove file', async () => {
+    it('should delete statement from database', async () => {
       const mockStatement = createMockStatement({ userId: mockUserId });
 
-      // For delete test, the file should exist
-      (fs.existsSync as jest.Mock).mockReturnValue(true);
       statementRepository.findOneWithRelations.mockResolvedValue(mockStatement);
 
       await service.delete(mockStatement.id, mockUserId);
 
-      expect(fs.existsSync).toHaveBeenCalledWith(mockStatement.filePath);
-      expect(fs.unlinkSync).toHaveBeenCalledWith(mockStatement.filePath);
       expect(statementRepository.remove).toHaveBeenCalledWith(mockStatement);
-    });
-
-    it('should delete statement even if file does not exist', async () => {
-      const mockStatement = createMockStatement({ userId: mockUserId });
-
-      (fs.existsSync as jest.Mock).mockReturnValue(false);
-      statementRepository.findOneWithRelations.mockResolvedValue(mockStatement);
-
-      await service.delete(mockStatement.id, mockUserId);
-
-      expect(fs.unlinkSync).not.toHaveBeenCalled();
-      expect(statementRepository.remove).toHaveBeenCalledWith(mockStatement);
-    });
-  });
-
-  describe('updateStatus', () => {
-    it('should update statement status', async () => {
-      const statementId = 'test-id';
-      const newStatus = StatementStatus.COMPLETED;
-
-      await service.updateStatus(statementId, newStatus);
-
-      expect(statementRepository.update).toHaveBeenCalledWith(statementId, {
-        status: newStatus,
-        errorMessage: null,
-      });
-    });
-
-    it('should update statement status with error message', async () => {
-      const statementId = 'test-id';
-      const newStatus = StatementStatus.FAILED;
-      const errorMessage = 'Processing failed';
-
-      await service.updateStatus(statementId, newStatus, errorMessage);
-
-      expect(statementRepository.update).toHaveBeenCalledWith(statementId, {
-        status: newStatus,
-        errorMessage,
-      });
-    });
-  });
-
-  describe('updateParsedData', () => {
-    it('should update statement parsed data', async () => {
-      const statementId = 'test-id';
-      const data = {
-        totalArs: 10000,
-        totalUsd: 50,
-        dueDate: new Date('2024-02-01'),
-        statementDate: new Date('2024-01-15'),
-      };
-
-      await service.updateParsedData(statementId, data);
-
-      expect(statementRepository.update).toHaveBeenCalledWith(statementId, data);
     });
   });
 
@@ -339,7 +256,7 @@ describe('StatementsService', () => {
 
       // No duplicates
       statementRepository.findByFileHash.mockResolvedValue(null);
-      mockStatements.forEach((stmt, index) => {
+      mockStatements.forEach((_, index) => {
         statementRepository.create.mockResolvedValueOnce(mockStatements[index]);
       });
 

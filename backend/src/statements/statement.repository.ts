@@ -55,20 +55,6 @@ export class StatementRepository {
     });
   }
 
-  async update(
-    id: string,
-    data: Partial<{
-      status: StatementStatus;
-      errorMessage: string | null;
-      totalArs: number;
-      totalUsd: number;
-      dueDate: Date;
-      statementDate: Date;
-    }>,
-  ): Promise<void> {
-    await this.repository.update(id, data);
-  }
-
   async remove(statement: Statement): Promise<void> {
     await this.repository.remove(statement);
   }
