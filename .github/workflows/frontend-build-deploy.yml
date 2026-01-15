@@ -47,10 +47,13 @@ jobs:
     steps:
       - name: Deploy to server via SSH
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          SERVER_SCRIPT_DIR: ${{ vars.SERVER_SCRIPT_DIR }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_PRIVATE_KEY }}
+          envs: SERVER_SCRIPT_DIR
           script: |
-            cd ~/spendify
+            cd $SERVER_SCRIPT_DIR
             ./deploy.sh frontend ${{ inputs.version }}
