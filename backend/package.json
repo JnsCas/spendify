@@ -25,7 +25,9 @@
     "migration:run": "npm run typeorm -- migration:run -d src/config/data-source.ts",
     "migration:revert": "npm run typeorm -- migration:revert -d src/config/data-source.ts",
     "seed": "ts-node -r tsconfig-paths/register migrations/seeds/seed-runner.ts",
-    "seed:prod": "node migrations/seeds/seed-runner.js"
+    "seed:prod": "node migrations/seeds/seed-runner.js",
+    "schema:sync": "npm run typeorm -- schema:sync -d src/config/data-source.ts",
+    "schema:sync:prod": "node ./node_modules/typeorm/cli.js schema:sync -d src/config/data-source.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
