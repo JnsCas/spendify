@@ -7,9 +7,17 @@ async function runSeeds() {
   const seedsDir = __dirname;
   const files = fs.readdirSync(seedsDir);
 
-  // Filter seed files (numbered .ts files, exclude runner and .js files)
+  // Filter seed files (numbered .ts or .js files, exclude runner and declaration files)
+  const isProduction = process.env.NODE_ENV === 'production';
+  const extension = isProduction ? '.js' : '.ts';
   const seedFiles = files
-    .filter((f) => /^\d+.*\.ts$/.test(f) && !f.endsWith('.d.ts'))
+    .filter(
+      (f) =>
+        /^\d+/.test(f) &&
+        f.endsWith(extension) &&
+        !f.endsWith('.d.ts') &&
+        !f.includes('seed-runner'),
+    )
     .sort((a, b) => {
       const numA = parseInt(a.split('-')[0], 10);
       const numB = parseInt(b.split('-')[0], 10);
@@ -28,7 +36,7 @@ async function runSeeds() {
   console.log('Connected!\n');
 
   for (const file of seedFiles) {
-    const seedName = file.replace('.ts', '');
+    const seedName = file.replace(extension, '');
     console.log(`Running: ${seedName}`);
     console.log('-'.repeat(50));
 
