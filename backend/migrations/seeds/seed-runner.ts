@@ -1,24 +1,7 @@
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
-import { User } from '../../src/users/user.entity';
-import { Card } from '../../src/cards/card.entity';
-import { Statement } from '../../src/statements/statement.entity';
-import { Expense } from '../../src/expenses/expense.entity';
-import { InviteCode } from '../../src/invite-codes/invite-code.entity';
-
-const dataSource = new DataSource({
-  type: 'postgres',
-  host: process.env.DATABASE_HOST || 'localhost',
-  port: parseInt(process.env.DATABASE_PORT || '5432', 10),
-  username: process.env.DATABASE_USER || 'spendify',
-  password: process.env.DATABASE_PASSWORD || 'spendify123',
-  database: process.env.DATABASE_NAME || 'spendify',
-  entities: [User, Card, Statement, Expense, InviteCode],
-  synchronize: true,
-});
-
-export type SeedFunction = (dataSource: DataSource) => Promise<void>;
+import { dataSource } from '../../src/config/data-source';
 
 async function runSeeds() {
   const seedsDir = __dirname;

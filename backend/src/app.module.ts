@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
+import { dataSourceOptions } from './config/data-source';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { CustomThrottlerGuard } from './common/guards/custom-throttler.guard';
 import { AuthModule } from './auth/auth.module';
@@ -30,21 +31,7 @@ import { InviteCodesModule } from './invite-codes/invite-codes.module';
     ]),
 
     // Database
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get('DATABASE_HOST', 'localhost'),
-        port: configService.get<number>('DATABASE_PORT', 5432),
-        username: configService.get('DATABASE_USER', 'spendify'),
-        password: configService.get('DATABASE_PASSWORD', 'spendify123'),
-        database: configService.get('DATABASE_NAME', 'spendify'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: ['development', 'test'].includes(configService.get('NODE_ENV', '')),
-        logging: false,
-      }),
-      inject: [ConfigService],
-    }),
+    TypeOrmModule.forRoot(dataSourceOptions),
 
     // Redis Queue
     BullModule.forRootAsync({
