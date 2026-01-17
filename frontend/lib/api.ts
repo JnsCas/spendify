@@ -68,10 +68,6 @@ export const statementsApi = {
     })
     return data
   },
-  reprocess: async (id: string) => {
-    const { data } = await api.post(`/statements/${id}/reprocess`)
-    return data
-  },
   delete: async (id: string) => {
     await api.delete(`/statements/${id}`)
   },
