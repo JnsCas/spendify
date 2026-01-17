@@ -12,6 +12,10 @@ on:
         type: string
         required: true
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   deploy-backend:
     name: Deploy Backend
