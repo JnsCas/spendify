@@ -515,6 +515,111 @@ describe('Statements (e2e)', () => {
     });
   });
 
+  describe('DELETE /statements/:id', () => {
+    it('should delete a statement without expenses', async () => {
+      const statement = await createStatement();
+
+      await request(app.getHttpServer())
+        .delete(`/statements/${statement.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      // Verify statement is deleted
+      const statementRepo = dataSource.getRepository(Statement);
+      const deletedStatement = await statementRepo.findOne({
+        where: { id: statement.id },
+      });
+      expect(deletedStatement).toBeNull();
+    });
+
+    it('should delete a statement and cascade delete its expenses', async () => {
+      const card = await createCard();
+      const statement = await createStatement();
+
+      // Create multiple expenses for this statement
+      await createExpense(statement.id, card.id, { description: 'Expense 1' });
+      await createExpense(statement.id, card.id, { description: 'Expense 2' });
+      await createExpense(statement.id, card.id, { description: 'Expense 3' });
+
+      // Verify expenses exist before deletion
+      const expenseRepo = dataSource.getRepository(Expense);
+      const expensesBefore = await expenseRepo.find({
+        where: { statementId: statement.id },
+      });
+      expect(expensesBefore).toHaveLength(3);
+
+      await request(app.getHttpServer())
+        .delete(`/statements/${statement.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      // Verify statement is deleted
+      const statementRepo = dataSource.getRepository(Statement);
+      const deletedStatement = await statementRepo.findOne({
+        where: { id: statement.id },
+      });
+      expect(deletedStatement).toBeNull();
+
+      // Verify expenses are also deleted (cascade)
+      const expensesAfter = await expenseRepo.find({
+        where: { statementId: statement.id },
+      });
+      expect(expensesAfter).toHaveLength(0);
+    });
+
+    it('should not delete another users statement', async () => {
+      // Create another user and their statement
+      const inviteCode = await inviteCodesService.generate();
+      const otherUserResponse = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({
+          email: 'otheruser-delete@example.com',
+          password: 'password123',
+          name: 'Other User Delete',
+          inviteCode: inviteCode.code,
+        });
+
+      const otherUserId = otherUserResponse.body.user.id;
+      const statementRepo = dataSource.getRepository(Statement);
+      const otherStatement = await statementRepo.save(
+        statementRepo.create({
+          userId: otherUserId,
+          originalFilename: 'other.pdf',
+          filePath: '/uploads/other/other.pdf',
+          uploadDate: new Date(),
+          status: StatementStatus.COMPLETED,
+        }),
+      );
+
+      // Try to delete other user's statement
+      await request(app.getHttpServer())
+        .delete(`/statements/${otherStatement.id}`)
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(404);
+
+      // Verify statement still exists
+      const existingStatement = await statementRepo.findOne({
+        where: { id: otherStatement.id },
+      });
+      expect(existingStatement).not.toBeNull();
+    });
+
+    it('should return 404 for non-existent statement', async () => {
+      await request(app.getHttpServer())
+        .delete('/statements/00000000-0000-0000-0000-000000000000')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(404);
+    });
+
+    it('should reject request without authentication', async () => {
+      const statement = await createStatement();
+
+      await request(app.getHttpServer())
+        .delete(`/statements/${statement.id}`)
+        .expect(401);
+    });
+  });
+
   describe('POST /statements/upload-bulk', () => {
     it('should accept multiple PDF files and return statement IDs', async () => {
       // Use different content for each file to avoid duplicate detection

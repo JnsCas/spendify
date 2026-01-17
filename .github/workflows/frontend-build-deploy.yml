@@ -7,6 +7,23 @@ on:
         description: Release version
         type: string
         required: true
+  workflow_call:
+    inputs:
+      version:
+        description: Release version
+        type: string
+        required: true
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+      SERVER_HOST:
+        required: true
+      SERVER_USERNAME:
+        required: true
+      SERVER_PRIVATE_KEY:
+        required: true
 
 jobs:
   build:

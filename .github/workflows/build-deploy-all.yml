@@ -1,0 +1,39 @@
+name: Build & Deploy All
+
+on:
+  workflow_dispatch:
+    inputs:
+      backend-version:
+        description: Backend release version
+        type: string
+        required: true
+      frontend-version:
+        description: Frontend release version
+        type: string
+        required: true
+
+jobs:
+  deploy-backend:
+    name: Deploy Backend
+    uses: ./.github/workflows/backend-build-deploy.yml
+    with:
+      version: ${{ inputs.backend-version }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      SERVER_HOST: ${{ secrets.SERVER_HOST }}
+      SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
+      SERVER_PRIVATE_KEY: ${{ secrets.SERVER_PRIVATE_KEY }}
+
+  deploy-frontend:
+    name: Deploy Frontend
+    needs: deploy-backend
+    uses: ./.github/workflows/frontend-build-deploy.yml
+    with:
+      version: ${{ inputs.frontend-version }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      SERVER_HOST: ${{ secrets.SERVER_HOST }}
+      SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
+      SERVER_PRIVATE_KEY: ${{ secrets.SERVER_PRIVATE_KEY }}

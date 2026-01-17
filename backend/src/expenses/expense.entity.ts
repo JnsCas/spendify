@@ -17,7 +17,9 @@ export class Expense {
   @Column({ name: 'statement_id' })
   statementId: string;
 
-  @ManyToOne(() => Statement, (statement) => statement.expenses)
+  @ManyToOne(() => Statement, (statement) => statement.expenses, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'statement_id' })
   statement: Statement;
 

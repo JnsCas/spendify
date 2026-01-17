@@ -25,7 +25,6 @@ export default function StatementDetailPage() {
   const router = useRouter()
   const [statement, setStatement] = useState<Statement | null>(null)
   const [loading, setLoading] = useState(true)
-  const [reprocessing, setReprocessing] = useState(false)
 
   const fetchStatement = async () => {
     try {
@@ -49,18 +48,6 @@ export default function StatementDetailPage() {
       return () => clearInterval(interval)
     }
   }, [statement?.status])
-
-  const handleReprocess = async () => {
-    setReprocessing(true)
-    try {
-      await statementsApi.reprocess(params.id as string)
-      fetchStatement()
-    } catch (error) {
-      console.error('Failed to reprocess:', error)
-    } finally {
-      setReprocessing(false)
-    }
-  }
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this statement?')) return
@@ -108,13 +95,6 @@ export default function StatementDetailPage() {
               Export CSV
             </button>
           )}
-          <button
-            onClick={handleReprocess}
-            disabled={reprocessing || statement.status === 'processing'}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
-          >
-            {reprocessing ? 'Reprocessing...' : 'Reprocess'}
-          </button>
           <button
             onClick={handleDelete}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
