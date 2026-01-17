@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
 import { ParserService } from './parser.service';
 import { PdfService } from './pdf.service';
+import { AnthropicClient } from './anthropic.client';
 import { AnthropicService } from './anthropic.service';
 import { StatementProcessor } from './statement.processor';
 import { ExpensesModule } from '../expenses/expenses.module';
@@ -18,7 +19,13 @@ import { Statement } from '../statements/statement.entity';
     ExpensesModule,
     CardsModule,
   ],
-  providers: [ParserService, PdfService, AnthropicService, StatementProcessor],
+  providers: [
+    ParserService,
+    PdfService,
+    AnthropicClient,
+    AnthropicService,
+    StatementProcessor,
+  ],
   exports: [ParserService],
 })
 export class ParserModule {}

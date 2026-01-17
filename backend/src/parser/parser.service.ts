@@ -16,12 +16,10 @@ export class ParserService {
 
     // Extract text from PDF
     const text = await this.pdfService.extractText(pdfPath);
-
     if (!text || text.trim().length === 0) {
       throw new Error('No text found in PDF');
     }
 
-    // Parse text with Anthropic
     const parsed = await this.anthropicService.parseStatementText(text);
 
     this.logger.log(
