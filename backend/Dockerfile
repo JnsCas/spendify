@@ -40,6 +40,9 @@ COPY --from=builder --chown=nestjs:nodejs /app/dist ./
 COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /app/package.json ./
 
+# Create uploads directory with correct ownership
+RUN mkdir -p /app/uploads && chown nestjs:nodejs /app/uploads
+
 USER nestjs
 
 EXPOSE 3001
