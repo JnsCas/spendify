@@ -13,7 +13,10 @@ import {
   FileTypeValidator,
   MaxFileSizeValidator,
   BadRequestException,
+  Logger,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -29,6 +32,8 @@ import {
 @Controller('statements')
 @UseGuards(JwtAuthGuard)
 export class StatementsController {
+  private readonly logger = new Logger(StatementsController.name);
+
   constructor(private statementsService: StatementsService) {}
 
   @Post('upload')
@@ -57,9 +62,16 @@ export class StatementsController {
     }),
   )
   async uploadBulk(
+    @Req() req: Request,
     @CurrentUser() user: User,
     @UploadedFiles() files: Express.Multer.File[],
   ): Promise<BulkUploadResponseDto> {
+    this.logger.log(`uploadBulk called - Content-Length: ${req.headers['content-length']}`);
+    this.logger.log(`Files received: ${files?.length ?? 'none'}`);
+    if (files?.length) {
+      files.forEach((f, i) => this.logger.log(`  File ${i + 1}: ${f.originalname} (${f.size} bytes)`));
+    }
+
     if (!files || files.length === 0) {
       throw new BadRequestException('At least one file is required');
     }
