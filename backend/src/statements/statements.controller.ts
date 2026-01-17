@@ -49,7 +49,13 @@ export class StatementsController {
   }
 
   @Post('upload-bulk')
-  @UseInterceptors(FilesInterceptor('files', 12))
+  @UseInterceptors(
+    FilesInterceptor('files', 12, {
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB per file
+      },
+    }),
+  )
   async uploadBulk(
     @CurrentUser() user: User,
     @UploadedFiles() files: Express.Multer.File[],
@@ -58,16 +64,10 @@ export class StatementsController {
       throw new BadRequestException('At least one file is required');
     }
 
-    const maxSize = 10 * 1024 * 1024; // 10MB
     for (const file of files) {
       if (file.mimetype !== 'application/pdf') {
         throw new BadRequestException(
           `File ${file.originalname} is not a PDF`,
-        );
-      }
-      if (file.size > maxSize) {
-        throw new BadRequestException(
-          `File ${file.originalname} exceeds maximum size of 10MB`,
         );
       }
     }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
+import { AxiosError } from 'axios'
 import { statementsApi } from '@/lib/api'
 import { useImportStore, type ImportItem } from '@/lib/importStore'
 import type { FileUploadStatus, DuplicateFile } from '@/lib/types/bulk-upload'
@@ -52,7 +53,11 @@ export function useBulkUpload() {
     setError(null)
     clearDuplicates()
 
-    const currentCount = items.length + localFiles.length
+    // Only count active items (not completed/failed) towards the limit
+    const activeItems = items.filter(
+      (item) => !['completed', 'failed'].includes(item.status)
+    )
+    const currentCount = activeItems.length + localFiles.length
     const availableSlots = MAX_FILES - currentCount
 
     if (availableSlots <= 0) {
@@ -163,11 +168,14 @@ export function useBulkUpload() {
       setLocalFiles((prev) =>
         prev.filter((lf) => !uploadedFilenames.includes(lf.file.name))
       )
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error
-        ? error.message
-        : (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Upload failed. Please try again.'
-      setError(errorMessage)
+    } catch (error) {
+      if (error instanceof AxiosError && error.response?.status === 413) {
+        setError('The files are too large. Please reduce the file size or upload fewer files at once.')
+      } else if (error instanceof AxiosError && error.response?.data?.message) {
+        setError(error.response.data.message)
+      } else {
+        setError('Upload failed. Please try again.')
+      }
       const freshItems = useImportStore.getState().items
       freshItems.filter((f) => f.status === 'uploading').forEach((item) => {
         updateItem(item.localId, { status: 'failed', progress: 0 })
@@ -208,10 +216,13 @@ export function useBulkUpload() {
         })
         setLocalFiles((prev) => prev.filter((lf) => lf.localId !== localId))
       }
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error
-        ? error.message
-        : (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Retry failed'
+    } catch (error) {
+      let errorMessage = 'Upload failed. Please try again.'
+      if (error instanceof AxiosError && error.response?.status === 413) {
+        errorMessage = 'The files are too large. Please reduce the file size or upload fewer files at once.'
+      } else if (error instanceof AxiosError && error.response?.data?.message) {
+        errorMessage = error.response.data.message
+      }
       updateItem(localId, {
         status: 'failed',
         error: errorMessage,

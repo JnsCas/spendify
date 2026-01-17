@@ -144,7 +144,7 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
             <h3 className="font-medium text-gray-900">
               Files ({files.length})
             </h3>
-            {!isUploading && !allComplete && (
+            {!isUploading && (
               <button
                 onClick={clearAll}
                 className="text-sm text-gray-500 hover:text-red-500 transition"
