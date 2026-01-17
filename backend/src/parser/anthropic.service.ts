@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import Anthropic from '@anthropic-ai/sdk';
+import { AnthropicClient } from './anthropic.client';
 
 export interface ParsedExpense {
   description: string;
@@ -27,37 +26,55 @@ export interface ParsedStatement {
 @Injectable()
 export class AnthropicService {
   private readonly logger = new Logger(AnthropicService.name);
-  private readonly client: Anthropic;
-  private readonly model: string;
 
-  constructor(private configService: ConfigService) {
-    const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
-    if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY is required');
-    }
-    this.client = new Anthropic({ apiKey });
-    const model = this.configService.get<string>('ANTHROPIC_MODEL');
-    if (!model) {
-      throw new Error('ANTHROPIC_MODEL is required');
-    }
-    this.model = model;
-  }
+  constructor(private readonly anthropicClient: AnthropicClient) {}
 
   async parseStatementText(text: string): Promise<ParsedStatement> {
     this.logger.log(`Parsing statement text...`);
-    
-    const prompt = `Parse Argentine credit card statement. Extract ALL expenses as JSON.
+
+    const prompt = this.buildParsingPrompt(text);
+
+    try {
+      const response = await this.anthropicClient.createMessage(prompt, 8192);
+
+      this.logger.log(
+        `Response stop_reason: ${response.stop_reason}, usage: ${JSON.stringify(response.usage)}`,
+      );
+
+      if (response.stop_reason === 'max_tokens') {
+        this.logger.warn(
+          'Response was truncated due to max_tokens limit - some expenses may be missing!',
+        );
+      }
+
+      const content = response.content[0];
+      if (content.type !== 'text') {
+        throw new Error('Unexpected response type');
+      }
+
+      const parsed = this.extractJsonFromResponse(content.text);
+
+      this.logger.log(`Parsed ${parsed.expenses.length} expenses`);
+
+      return parsed;
+    } catch (error) {
+      this.logger.error(`Failed to parse statement: ${error.message}`);
+      throw error;
+    }
+  }
+
+  private buildParsingPrompt(text: string): string {
+    return `Parse Argentine credit card statement. Extract ALL expenses as JSON.
 
 OUTPUT FORMAT:
 {"expenses":[{"description":"str","amount_ars":num|null,"amount_usd":num|null,"current_installment":num|null,"total_installments":num|null,"card_identifier":"str"|null,"purchase_date":"YYYY-MM-DD"|null}],"summary":{"total_ars":num|null,"total_usd":num|null,"due_date":"YYYY-MM-DD"|null,"statement_date":"YYYY-MM-DD"|null}}
 
 PARSING RULES:
 
-1. CARD/ACCOUNT IDENTIFICATION:
-   - Look for account/card info: "cuenta XXXXXXXXXX", "Tarjeta XXXX", or similar
-   - Extract last 4 digits as card_identifier (e.g., "cuenta 0894140651" → "0651")
-   - If multiple cards: "Tarjeta XXXX" sections → use those 4 digits for expenses in that section
-   - If single account (CONSOLIDADO): use the account's last 4 digits for all consumptions
+1. CARD IDENTIFICATION:
+   - Look for credit card sections: "Tarjeta XXXX" or similar
+   - Extract last 4 digits as card_identifier (e.g., "Tarjeta 1234" → "1234")
+   - If multiple cards: use those 4 digits for expenses in that card's section
    - Tax/fee items (IIBB, IVA, IMPUESTO DE SELLOS) → card_identifier=null
 
 2. DATE FORMATS (convert all to YYYY-MM-DD):
@@ -90,85 +107,55 @@ PARSING RULES:
 IMPORTANT: Sum of extracted amounts must match statement total. Extract ALL expenses. JSON only.
 
 ${text}`;
+  }
 
+  private extractJsonFromResponse(responseText: string): ParsedStatement {
+    let jsonStr = responseText;
+    const codeBlockMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (codeBlockMatch) {
+      jsonStr = codeBlockMatch[1];
+    }
+
+    const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      this.logger.error(`No JSON found in response: ${responseText}`);
+      throw new Error('No valid JSON found in response');
+    }
+
+    let jsonToParse = jsonMatch[0];
+
+    // Clean up common JSON issues
+    jsonToParse = jsonToParse
+      .replace(/,\s*]/g, ']') // Remove trailing commas in arrays
+      .replace(/,\s*}/g, '}') // Remove trailing commas in objects
+      .replace(/[\x00-\x1F\x7F]/g, ' '); // Remove control characters
+
+    let parsed: ParsedStatement;
     try {
-      const response = await this.client.messages.create({
-        model: this.model,
-        max_tokens: 8192,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-      });
+      parsed = JSON.parse(jsonToParse) as ParsedStatement;
+    } catch (parseError) {
+      this.logger.error(`JSON parse error: ${parseError.message}`);
+      this.logger.error(
+        `JSON snippet around error: ${jsonToParse.substring(11200, 11300)}`,
+      );
 
-      this.logger.log(`Response stop_reason: ${response.stop_reason}, usage: ${JSON.stringify(response.usage)}`);
-
-      if (response.stop_reason === 'max_tokens') {
-        this.logger.warn('Response was truncated due to max_tokens limit - some expenses may be missing!');
-      }
-
-      const content = response.content[0];
-      if (content.type !== 'text') {
-        throw new Error('Unexpected response type');
-      }
-
-      const responseText = content.text;
-      let jsonStr = responseText;
-      const codeBlockMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (codeBlockMatch) {
-        jsonStr = codeBlockMatch[1];
-      }
-
-      const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        this.logger.error(`No JSON found in response: ${responseText}`);
-        throw new Error('No valid JSON found in response');
-      }
-
-      let jsonToParse = jsonMatch[0];
-
-      // Clean up common JSON issues
-      jsonToParse = jsonToParse
-        .replace(/,\s*]/g, ']') // Remove trailing commas in arrays
-        .replace(/,\s*}/g, '}') // Remove trailing commas in objects
-        .replace(/[\x00-\x1F\x7F]/g, ' '); // Remove control characters
-
-      let parsed: ParsedStatement;
-      try {
-        parsed = JSON.parse(jsonToParse) as ParsedStatement;
-      } catch (parseError) {
-        this.logger.error(`JSON parse error: ${parseError.message}`);
-        this.logger.error(
-          `JSON snippet around error: ${jsonToParse.substring(11200, 11300)}`,
-        );
-
-        // Try to salvage partial JSON by finding complete expenses array
-        const expensesMatch = jsonToParse.match(
-          /"expenses"\s*:\s*\[([\s\S]*?)\]/,
-        );
-        if (expensesMatch) {
-          const fallbackJson = `{"expenses":[${expensesMatch[1]}],"summary":{"total_ars":null,"total_usd":null,"due_date":null,"statement_date":null}}`;
-          try {
-            parsed = JSON.parse(fallbackJson) as ParsedStatement;
-            this.logger.warn(
-              `Used fallback parsing, recovered ${parsed.expenses.length} expenses`,
-            );
-          } catch {
-            throw new Error(`Invalid JSON in response: ${parseError.message}`);
-          }
-        } else {
+      // Try to salvage partial JSON by finding complete expenses array
+      const expensesMatch = jsonToParse.match(/"expenses"\s*:\s*\[([\s\S]*?)\]/);
+      if (expensesMatch) {
+        const fallbackJson = `{"expenses":[${expensesMatch[1]}],"summary":{"total_ars":null,"total_usd":null,"due_date":null,"statement_date":null}}`;
+        try {
+          parsed = JSON.parse(fallbackJson) as ParsedStatement;
+          this.logger.warn(
+            `Used fallback parsing, recovered ${parsed.expenses.length} expenses`,
+          );
+        } catch {
           throw new Error(`Invalid JSON in response: ${parseError.message}`);
         }
+      } else {
+        throw new Error(`Invalid JSON in response: ${parseError.message}`);
       }
-
-      this.logger.log(`Parsed ${parsed.expenses.length} expenses`);
-
-      return parsed;
-    } catch (error) {
-      this.logger.error(`Failed to parse statement: ${error.message}`);
-      throw error;
     }
+
+    return parsed;
   }
 }
