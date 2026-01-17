@@ -38,3 +38,5 @@ coverage/
 prompts/*
 
 .playwright-mcp/*
+
+*.prod.yml
