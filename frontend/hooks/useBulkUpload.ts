@@ -8,7 +8,7 @@ import type { FileUploadStatus, DuplicateFile } from '@/lib/types/bulk-upload'
 
 const MAX_FILES = 12
 const MAX_FILE_SIZE = 500 * 1024 // 500KB
-const POLL_INTERVAL = 3000 // 3 seconds
+const POLL_INTERVAL = 10000 // 10 seconds
 
 interface LocalFile {
   localId: string
@@ -231,15 +231,21 @@ export function useBulkUpload() {
     }
   }, [localFiles, updateItem])
 
+  // Derive a stable boolean to indicate if polling is needed
+  // This prevents the effect from re-running on every items update
+  const hasPendingItems = items.some(
+    item => item.statementId && (item.status === 'pending' || item.status === 'processing')
+  )
+
   // Simple polling effect - polls when there are pending/processing items
   useEffect(() => {
-    const pendingIds = items
-      .filter(item => item.statementId && (item.status === 'pending' || item.status === 'processing'))
-      .map(item => item.statementId!)
-
-    if (pendingIds.length === 0) return
+    if (!hasPendingItems) return
 
     const poll = async () => {
+      // Get fresh IDs from store to avoid stale closure
+      const pendingIds = useImportStore.getState().getPendingOrProcessingIds()
+      if (pendingIds.length === 0) return
+
       try {
         const response = await statementsApi.getStatuses(pendingIds)
         response.statuses.forEach((statusItem) => {
@@ -260,12 +266,12 @@ export function useBulkUpload() {
       }
     }
 
-    // Poll immediately, then every 3 seconds
+    // Poll immediately, then every 10 seconds
     poll()
     const interval = setInterval(poll, POLL_INTERVAL)
 
     return () => clearInterval(interval)
-  }, [items, updateItemByStatementId])
+  }, [hasPendingItems, updateItemByStatementId])
 
   const allComplete = items.length > 0 && items.every(
     (f) => f.status === 'completed' || f.status === 'failed'
