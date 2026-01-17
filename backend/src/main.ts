@@ -1,9 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { WebLoggerMiddleware } from './middlewares/web-logger.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Debug middleware - log all requests
+  const webLogger = new WebLoggerMiddleware();
+  app.use(webLogger.use.bind(webLogger));
 
   // Enable CORS
   app.enableCors({
