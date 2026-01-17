@@ -7,7 +7,7 @@ import { useImportStore, type ImportItem } from '@/lib/importStore'
 import type { FileUploadStatus, DuplicateFile } from '@/lib/types/bulk-upload'
 
 const MAX_FILES = 12
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+const MAX_FILE_SIZE = 500 * 1024 // 500KB
 const POLL_INTERVAL = 3000 // 3 seconds
 
 interface LocalFile {
@@ -44,7 +44,7 @@ export function useBulkUpload() {
       return `${file.name}: Only PDF files are allowed`
     }
     if (file.size > MAX_FILE_SIZE) {
-      return `${file.name}: File size must be less than 10MB`
+      return `${file.name}: File size must be less than 500KB`
     }
     return null
   }
