@@ -44,7 +44,7 @@ export class StatementsController {
       new ParseFilePipe({
         validators: [
           new FileTypeValidator({ fileType: 'application/pdf' }),
-          new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }), // 10MB
+          new MaxFileSizeValidator({ maxSize: 500 * 1024 }), // 500KB
         ],
       }),
     )
@@ -57,7 +57,7 @@ export class StatementsController {
   @UseInterceptors(
     FilesInterceptor('files', 12, {
       limits: {
-        fileSize: 10 * 1024 * 1024, // 10MB per file
+        fileSize: 500 * 1024, // 500KB per file
       },
     }),
   )

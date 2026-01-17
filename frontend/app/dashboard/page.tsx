@@ -6,7 +6,7 @@ import { statementsApi } from '@/lib/api'
 import { DashboardCharts, YearPaginator, MonthlyGrid, CircularProgress } from '@/components/dashboard'
 import { Statement, StatementSummaryResponse } from '@/lib/types/dashboard'
 
-const POLL_INTERVAL = 5000 // 5 seconds
+const POLL_INTERVAL = 10000 // 10 seconds
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -88,7 +88,7 @@ export default function DashboardPage() {
       }
     }
 
-    // Poll immediately, then every 5 seconds
+    // Poll immediately, then every 10 seconds
     poll()
     const interval = setInterval(poll, POLL_INTERVAL)
 

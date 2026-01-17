@@ -105,7 +105,7 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
           </div>
 
           <p className="text-sm text-gray-500">
-            PDF files only, max 10MB each, up to 12 files
+            PDF files only, max 500KB each, up to 12 files
           </p>
         </div>
       </div>
