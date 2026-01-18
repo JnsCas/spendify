@@ -5,10 +5,12 @@ import { Card } from './card.entity';
 
 export interface CreateCardData {
   userId: string;
-  cardName?: string;
-  lastFourDigits?: string;
-  isExtension?: boolean;
-  holderName?: string;
+  lastFourDigits: string;
+  customName?: string;
+}
+
+export interface UpdateCardData {
+  customName?: string;
 }
 
 @Injectable()
@@ -36,16 +38,14 @@ export class CardRepository {
     });
   }
 
-  async findByIdentifier(userId: string, identifier: string): Promise<Card | null> {
+  async findByLastFourDigits(userId: string, lastFourDigits: string): Promise<Card | null> {
     return this.repository.findOne({
-      where: [
-        { userId, lastFourDigits: identifier },
-        { userId, holderName: identifier },
-      ],
+      where: { userId, lastFourDigits },
     });
   }
 
-  async remove(card: Card): Promise<void> {
-    await this.repository.remove(card);
+  async update(card: Card, data: UpdateCardData): Promise<Card> {
+    Object.assign(card, data);
+    return this.repository.save(card);
   }
 }

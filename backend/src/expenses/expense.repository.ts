@@ -16,7 +16,7 @@ export interface CreateExpenseData {
 
 export interface CardBreakdown {
   cardId: string | null;
-  cardName: string | null;
+  customName: string | null;
   lastFourDigits: string | null;
   totalArs: number;
   totalUsd: number;
@@ -72,7 +72,7 @@ export class ExpenseRepository {
       .leftJoin('e.card', 'c')
       .select([
         'e.cardId as "cardId"',
-        "COALESCE(c.cardName, 'Unknown Card') as \"cardName\"",
+        'c.customName as "customName"',
         'c.lastFourDigits as "lastFourDigits"',
         'COALESCE(SUM(e.amountArs), 0) as "totalArs"',
         'COALESCE(SUM(e.amountUsd), 0) as "totalUsd"',
@@ -80,14 +80,14 @@ export class ExpenseRepository {
       .where('s.userId = :userId', { userId })
       .andWhere('EXTRACT(YEAR FROM s.statementDate) = :year', { year })
       .groupBy('e.cardId')
-      .addGroupBy('c.cardName')
+      .addGroupBy('c.customName')
       .addGroupBy('c.lastFourDigits')
       .orderBy('"totalArs"', 'DESC')
       .getRawMany();
 
     return result.map((r) => ({
       cardId: r.cardId,
-      cardName: r.cardName || null,
+      customName: r.customName || null,
       lastFourDigits: r.lastFourDigits,
       totalArs: parseFloat(r.totalArs) || 0,
       totalUsd: parseFloat(r.totalUsd) || 0,

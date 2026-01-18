@@ -22,17 +22,11 @@ export class Card {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column({ name: 'card_name', nullable: true })
-  cardName: string;
+  @Column({ name: 'custom_name', nullable: true })
+  customName: string;
 
   @Column({ name: 'last_four_digits', nullable: true })
   lastFourDigits: string;
-
-  @Column({ name: 'is_extension', default: false })
-  isExtension: boolean;
-
-  @Column({ name: 'holder_name', nullable: true })
-  holderName: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

@@ -206,7 +206,7 @@ describe('StatementsService', () => {
         { month: 2, totalArs: 15000, totalUsd: 75, statementCount: 1 },
       ]);
       expenseRepository.getCardBreakdownByUserAndYear.mockResolvedValue([
-        { cardId: 'card-1', cardName: 'Visa', lastFourDigits: '1234', totalArs: 8000, totalUsd: 40 },
+        { cardId: 'card-1', customName: 'Visa', lastFourDigits: '1234', totalArs: 8000, totalUsd: 40 },
       ]);
 
       const result = await service.getSummaryByUser(mockUserId, 2024);

@@ -20,7 +20,7 @@ const mockExpenses = [
     purchaseDate: '2024-01-15',
     card: {
       id: 'card-1',
-      holderName: 'John Doe',
+      customName: 'John Doe',
       lastFourDigits: '1234',
     },
   },
@@ -34,7 +34,7 @@ const mockExpenses = [
     purchaseDate: '2024-01-20',
     card: {
       id: 'card-2',
-      holderName: 'Jane Smith',
+      customName: 'Jane Smith',
       lastFourDigits: '5678',
     },
   },
@@ -58,7 +58,7 @@ const mockExpenses = [
     purchaseDate: '2024-01-10',
     card: {
       id: 'card-1',
-      holderName: 'John Doe',
+      customName: 'John Doe',
       lastFourDigits: '1234',
     },
   },
@@ -303,7 +303,7 @@ describe('ExpenseTable Component', () => {
       expect(cells[3]).toHaveTextContent('-')
     })
 
-    it('should display card holder names', () => {
+    it('should display card custom names', () => {
       render(<ExpenseTable expenses={mockExpenses} />)
 
       const rows = screen.getAllByRole('row')

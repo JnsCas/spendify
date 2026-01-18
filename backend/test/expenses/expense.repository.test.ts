@@ -151,7 +151,7 @@ describe('ExpenseRepository', () => {
       const mockResult = [
         {
           cardId: 'card-1',
-          cardName: 'Visa',
+          customName: 'Visa',
           lastFourDigits: '1234',
           totalArs: '8000.00',
           totalUsd: '40.00',
@@ -170,7 +170,7 @@ describe('ExpenseRepository', () => {
       expect(result).toEqual([
         {
           cardId: 'card-1',
-          cardName: 'Visa',
+          customName: 'Visa',
           lastFourDigits: '1234',
           totalArs: 8000,
           totalUsd: 40,
@@ -182,7 +182,7 @@ describe('ExpenseRepository', () => {
       const mockResult = [
         {
           cardId: null,
-          cardName: 'Unknown Card',
+          customName: null,
           lastFourDigits: null,
           totalArs: '1000.00',
           totalUsd: null,
@@ -194,7 +194,7 @@ describe('ExpenseRepository', () => {
       const result = await repository.getCardBreakdownByUserAndYear(mockUserId, 2024);
 
       expect(result[0].cardId).toBeNull();
-      expect(result[0].cardName).toBe('Unknown Card');
+      expect(result[0].customName).toBeNull();
       expect(result[0].totalUsd).toBe(0);
     });
   });

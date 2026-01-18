@@ -41,10 +41,8 @@ export const createMockCard = (overrides: Partial<Card> = {}): Card => {
   const card = new Card();
   card.id = overrides.id || '123e4567-e89b-12d3-a456-426614174002';
   card.userId = overrides.userId || '123e4567-e89b-12d3-a456-426614174000';
-  card.cardName = overrides.cardName || 'Visa';
+  card.customName = overrides.customName || 'Visa';
   card.lastFourDigits = overrides.lastFourDigits || '1234';
-  card.isExtension = overrides.isExtension ?? false;
-  card.holderName = overrides.holderName || 'TEST USER';
   card.createdAt = overrides.createdAt || new Date('2024-01-01');
   return card;
 };

@@ -37,7 +37,7 @@ describe('AnthropicService', () => {
         amount_usd: null,
         current_installment: null,
         total_installments: null,
-        card_identifier: '1234',
+        last_four_digits: '1234',
         purchase_date: '2024-01-10',
       },
     ],
@@ -107,7 +107,7 @@ describe('AnthropicService', () => {
     });
 
     it('should handle trailing commas in JSON arrays', async () => {
-      const jsonWithTrailingComma = `{"expenses":[{"description":"Test","amount_ars":100,"amount_usd":null,"current_installment":null,"total_installments":null,"card_identifier":"1234","purchase_date":"2024-01-10"},],"summary":{"total_ars":100,"total_usd":null,"due_date":null,"statement_date":null}}`;
+      const jsonWithTrailingComma = `{"expenses":[{"description":"Test","amount_ars":100,"amount_usd":null,"current_installment":null,"total_installments":null,"last_four_digits":"1234","purchase_date":"2024-01-10"},],"summary":{"total_ars":100,"total_usd":null,"due_date":null,"statement_date":null}}`;
       mockAnthropicClient.createMessage.mockResolvedValue(
         createMockMessage(jsonWithTrailingComma),
       );
@@ -164,7 +164,7 @@ describe('AnthropicService', () => {
 
     it('should use fallback parsing when JSON is malformed but expenses array exists', async () => {
       // JSON that matches {...} regex but has invalid syntax after expenses array
-      const malformedJson = `{"expenses":[{"description":"Recovered","amount_ars":500,"amount_usd":null,"current_installment":null,"total_installments":null,"card_identifier":"5678","purchase_date":"2024-01-15"}],"summary":{"total_ars":INVALID}}`;
+      const malformedJson = `{"expenses":[{"description":"Recovered","amount_ars":500,"amount_usd":null,"current_installment":null,"total_installments":null,"last_four_digits":"5678","purchase_date":"2024-01-15"}],"summary":{"total_ars":INVALID}}`;
       mockAnthropicClient.createMessage.mockResolvedValue(
         createMockMessage(malformedJson),
       );
