@@ -3,24 +3,38 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { statementsApi } from '@/lib/api'
-import { DashboardCharts, YearPaginator, MonthlyGrid, CircularProgress } from '@/components/dashboard'
-import { Statement, StatementSummaryResponse } from '@/lib/types/dashboard'
+import {
+  DashboardCharts,
+  MonthPaginator,
+  MonthlyGrid,
+  CircularProgress,
+} from '@/components/dashboard'
+import { Statement, StatementSummaryResponse, EndMonth } from '@/lib/types/dashboard'
 
 const POLL_INTERVAL = 10000 // 10 seconds
 
 export default function DashboardPage() {
   const router = useRouter()
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
+
+  // Initialize with current month as end month
+  const now = new Date()
+  const [endMonth, setEndMonth] = useState<EndMonth>({
+    year: now.getFullYear(),
+    month: now.getMonth() + 1,
+  })
+
   const [summary, setSummary] = useState<StatementSummaryResponse | null>(null)
   const [statements, setStatements] = useState<Statement[]>([])
-  const [processingStatements, setProcessingStatements] = useState<Statement[]>([])
+  const [processingStatements, setProcessingStatements] = useState<Statement[]>(
+    []
+  )
   const [loading, setLoading] = useState(true)
   const [summaryLoading, setSummaryLoading] = useState(true)
 
-  const fetchSummary = useCallback(async (year: number) => {
+  const fetchSummary = useCallback(async (endMonth: EndMonth) => {
     try {
       setSummaryLoading(true)
-      const data = await statementsApi.getSummary(year)
+      const data = await statementsApi.getSummary(endMonth.year, endMonth.month)
       setSummary(data)
     } catch (error) {
       console.error('Failed to fetch summary:', error)
@@ -29,10 +43,10 @@ export default function DashboardPage() {
     }
   }, [])
 
-  const fetchStatements = useCallback(async (year: number) => {
+  const fetchStatements = useCallback(async (endMonth: EndMonth) => {
     try {
       setLoading(true)
-      const data = await statementsApi.getAll(year)
+      const data = await statementsApi.getAll(endMonth.year, endMonth.month)
       setStatements(data)
     } catch (error) {
       console.error('Failed to fetch statements:', error)
@@ -52,13 +66,13 @@ export default function DashboardPage() {
 
   // Initial data fetch
   useEffect(() => {
-    fetchSummary(currentYear)
-    fetchStatements(currentYear)
+    fetchSummary(endMonth)
+    fetchStatements(endMonth)
     fetchProcessingStatements()
-  }, [currentYear, fetchSummary, fetchStatements, fetchProcessingStatements])
+  }, [endMonth, fetchSummary, fetchStatements, fetchProcessingStatements])
 
-  const handleYearChange = (year: number) => {
-    setCurrentYear(year)
+  const handleEndMonthChange = (newEndMonth: EndMonth) => {
+    setEndMonth(newEndMonth)
   }
 
   const handleStatementClick = (id: string) => {
@@ -67,20 +81,20 @@ export default function DashboardPage() {
 
   // Polling effect - polls when there are processing statements
   useEffect(() => {
-    const processingIds = processingStatements.map(s => s.id)
+    const processingIds = processingStatements.map((s) => s.id)
     if (processingIds.length === 0) return
 
     const poll = async () => {
       try {
         const response = await statementsApi.getStatuses(processingIds)
         const stillProcessing = response.statuses.filter(
-          s => s.status === 'pending' || s.status === 'processing'
+          (s) => s.status === 'pending' || s.status === 'processing'
         )
 
         // If any completed, refresh all data
         if (stillProcessing.length !== processingIds.length) {
-          fetchSummary(currentYear)
-          fetchStatements(currentYear)
+          fetchSummary(endMonth)
+          fetchStatements(endMonth)
           fetchProcessingStatements()
         }
       } catch (error) {
@@ -93,11 +107,17 @@ export default function DashboardPage() {
     const interval = setInterval(poll, POLL_INTERVAL)
 
     return () => clearInterval(interval)
-  }, [processingStatements, currentYear, fetchSummary, fetchStatements, fetchProcessingStatements])
+  }, [
+    processingStatements,
+    endMonth,
+    fetchSummary,
+    fetchStatements,
+    fetchProcessingStatements,
+  ])
 
   // Calculate values for display
-  const yearTotalArs = summary?.yearSummary.totalArs || 0
-  const yearTotalUsd = summary?.yearSummary.totalUsd || 0
+  const totalArs = summary?.rangeSummary.totalArs || 0
+  const totalUsd = summary?.rangeSummary.totalUsd || 0
   const processingCount = processingStatements.length
 
   return (
@@ -120,19 +140,18 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Year Navigation with Total */}
-      <YearPaginator
-        currentYear={currentYear}
-        minYear={1990}
-        onYearChange={handleYearChange}
-        totalArs={yearTotalArs}
-        totalUsd={yearTotalUsd}
+      {/* Month Navigation with Total */}
+      <MonthPaginator
+        endMonth={endMonth}
+        onEndMonthChange={handleEndMonthChange}
+        totalArs={totalArs}
+        totalUsd={totalUsd}
       />
 
       {/* Charts Section */}
       <DashboardCharts
         summary={summary}
-        currentYear={currentYear}
+        endMonth={endMonth}
         loading={summaryLoading}
       />
 
@@ -142,8 +161,8 @@ export default function DashboardPage() {
           Monthly Statements
         </h2>
         <MonthlyGrid
-          year={currentYear}
-          monthlyData={summary?.yearSummary.monthlyData || []}
+          endMonth={endMonth}
+          monthlyData={summary?.rangeSummary.monthlyData || []}
           statements={statements}
           onStatementClick={handleStatementClick}
           loading={loading}

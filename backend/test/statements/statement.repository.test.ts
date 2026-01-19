@@ -133,85 +133,100 @@ describe('StatementRepository', () => {
     });
   });
 
-  describe('findAllByUserFiltered', () => {
-    it('should filter by year and month', async () => {
+  describe('getAvailableMonths', () => {
+    it('should return available months sorted by year and month descending', async () => {
+      const mockResult = [
+        { year: '2024', month: '3' },
+        { year: '2024', month: '2' },
+        { year: '2024', month: '1' },
+      ];
+      const qb = {
+        ...createMockQueryBuilder(mockResult),
+        distinct: jest.fn().mockReturnThis(),
+      };
+      typeOrmRepository.createQueryBuilder!.mockReturnValue(qb);
+
+      const result = await repository.getAvailableMonths(mockUserId);
+
+      expect(result).toEqual([
+        { year: 2024, month: 3 },
+        { year: 2024, month: 2 },
+        { year: 2024, month: 1 },
+      ]);
+    });
+
+    it('should filter out invalid values', async () => {
+      const mockResult = [
+        { year: '2024', month: '3' },
+        { year: null, month: '2' },
+        { year: '2024', month: null },
+      ];
+      const qb = {
+        ...createMockQueryBuilder(mockResult),
+        distinct: jest.fn().mockReturnThis(),
+      };
+      typeOrmRepository.createQueryBuilder!.mockReturnValue(qb);
+
+      const result = await repository.getAvailableMonths(mockUserId);
+
+      expect(result).toEqual([{ year: 2024, month: 3 }]);
+    });
+  });
+
+  describe('findAllByUserInDateRange', () => {
+    it('should filter by date range', async () => {
       const mockStatements = [createMockStatement()];
       const qb = createMockQueryBuilder(mockStatements);
       typeOrmRepository.createQueryBuilder!.mockReturnValue(qb);
 
-      const result = await repository.findAllByUserFiltered(mockUserId, 2024, 3);
+      const startDate = new Date(2024, 0, 1);
+      const endDate = new Date(2024, 11, 31);
+      const result = await repository.findAllByUserInDateRange(mockUserId, startDate, endDate);
 
       expect(typeOrmRepository.createQueryBuilder).toHaveBeenCalledWith('statement');
       expect(qb.where).toHaveBeenCalledWith('statement.userId = :userId', { userId: mockUserId });
-      expect(qb.andWhere).toHaveBeenCalledWith(
-        'EXTRACT(YEAR FROM statement.statementDate) = :year',
-        { year: 2024 }
-      );
-      expect(qb.andWhere).toHaveBeenCalledWith(
-        'EXTRACT(MONTH FROM statement.statementDate) = :month',
-        { month: 3 }
-      );
+      expect(qb.andWhere).toHaveBeenCalledWith('statement.statementDate >= :startDate', { startDate });
+      expect(qb.andWhere).toHaveBeenCalledWith('statement.statementDate <= :endDate', { endDate });
       expect(qb.getMany).toHaveBeenCalled();
       expect(result).toEqual(mockStatements);
     });
-
-    it('should not filter when no year/month provided', async () => {
-      const qb = createMockQueryBuilder([]);
-      typeOrmRepository.createQueryBuilder!.mockReturnValue(qb);
-
-      await repository.findAllByUserFiltered(mockUserId);
-
-      expect(qb.andWhere).not.toHaveBeenCalled();
-    });
   });
 
-  describe('getAvailableYears', () => {
-    it('should return available years sorted descending', async () => {
-      const mockResult = [{ year: '2024' }, { year: '2023' }, { year: '2022' }];
-      const qb = createMockQueryBuilder(mockResult);
-      typeOrmRepository.createQueryBuilder!.mockReturnValue(qb);
-
-      const result = await repository.getAvailableYears(mockUserId);
-
-      expect(result).toEqual([2024, 2023, 2022]);
-    });
-
-    it('should filter out invalid years', async () => {
-      const mockResult = [{ year: '2024' }, { year: null }, { year: 'invalid' }];
-      const qb = createMockQueryBuilder(mockResult);
-      typeOrmRepository.createQueryBuilder!.mockReturnValue(qb);
-
-      const result = await repository.getAvailableYears(mockUserId);
-
-      expect(result).toEqual([2024]);
-    });
-  });
-
-  describe('getMonthlyAggregates', () => {
-    it('should return monthly aggregates', async () => {
+  describe('getMonthlyAggregatesInDateRange', () => {
+    it('should return monthly aggregates with year', async () => {
       const mockResult = [
-        { month: '1', totalArs: '10000.00', totalUsd: '50.00', statementCount: '2' },
-        { month: '2', totalArs: '15000.00', totalUsd: '75.00', statementCount: '1' },
+        { year: '2024', month: '1', totalArs: '10000.00', totalUsd: '50.00', statementCount: '2' },
+        { year: '2024', month: '2', totalArs: '15000.00', totalUsd: '75.00', statementCount: '1' },
       ];
-      const qb = createMockQueryBuilder(mockResult);
+      const qb = {
+        ...createMockQueryBuilder(mockResult),
+        addGroupBy: jest.fn().mockReturnThis(),
+      };
       typeOrmRepository.createQueryBuilder!.mockReturnValue(qb);
 
-      const result = await repository.getMonthlyAggregates(mockUserId, 2024);
+      const startDate = new Date(2024, 0, 1);
+      const endDate = new Date(2024, 11, 31);
+      const result = await repository.getMonthlyAggregatesInDateRange(mockUserId, startDate, endDate);
 
       expect(result).toEqual([
-        { month: 1, totalArs: 10000, totalUsd: 50, statementCount: 2 },
-        { month: 2, totalArs: 15000, totalUsd: 75, statementCount: 1 },
+        { year: 2024, month: 1, totalArs: 10000, totalUsd: 50, statementCount: 2 },
+        { year: 2024, month: 2, totalArs: 15000, totalUsd: 75, statementCount: 1 },
       ]);
     });
 
     it('should handle zero values', async () => {
       const mockResult = [
-        { month: '1', totalArs: '0', totalUsd: null, statementCount: '0' },
+        { year: '2024', month: '1', totalArs: '0', totalUsd: null, statementCount: '0' },
       ];
-      const qb = createMockQueryBuilder(mockResult);
+      const qb = {
+        ...createMockQueryBuilder(mockResult),
+        addGroupBy: jest.fn().mockReturnThis(),
+      };
       typeOrmRepository.createQueryBuilder!.mockReturnValue(qb);
 
-      const result = await repository.getMonthlyAggregates(mockUserId, 2024);
+      const startDate = new Date(2024, 0, 1);
+      const endDate = new Date(2024, 11, 31);
+      const result = await repository.getMonthlyAggregatesInDateRange(mockUserId, startDate, endDate);
 
       expect(result[0].totalArs).toBe(0);
       expect(result[0].totalUsd).toBe(0);

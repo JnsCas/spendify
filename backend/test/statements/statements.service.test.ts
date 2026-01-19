@@ -26,9 +26,9 @@ describe('StatementsService', () => {
       findOne: jest.fn(),
       findOneWithRelations: jest.fn(),
       remove: jest.fn(),
-      findAllByUserFiltered: jest.fn(),
-      getAvailableYears: jest.fn(),
-      getMonthlyAggregates: jest.fn(),
+      getAvailableMonths: jest.fn(),
+      findAllByUserInDateRange: jest.fn(),
+      getMonthlyAggregatesInDateRange: jest.fn(),
       findManyByIds: jest.fn(),
       hasAnyByUser: jest.fn(),
       findByFileHash: jest.fn(),
@@ -36,7 +36,7 @@ describe('StatementsService', () => {
     };
 
     const mockExpenseRepository = {
-      getCardBreakdownByUserAndYear: jest.fn(),
+      getCardBreakdownByUserInDateRange: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -182,59 +182,58 @@ describe('StatementsService', () => {
     });
   });
 
-  describe('findAllByUserFiltered', () => {
-    it('should call repository with filters', async () => {
-      const mockStatements = [createMockStatement()];
-      statementRepository.findAllByUserFiltered.mockResolvedValue(mockStatements);
-
-      const result = await service.findAllByUserFiltered(mockUserId, 2024, 3);
-
-      expect(statementRepository.findAllByUserFiltered).toHaveBeenCalledWith(
-        mockUserId,
-        2024,
-        3
-      );
-      expect(result).toEqual(mockStatements);
-    });
-  });
-
-  describe('getSummaryByUser', () => {
-    it('should return summary with available years and monthly data', async () => {
-      statementRepository.getAvailableYears.mockResolvedValue([2024, 2023]);
-      statementRepository.getMonthlyAggregates.mockResolvedValue([
-        { month: 1, totalArs: 10000, totalUsd: 50, statementCount: 2 },
-        { month: 2, totalArs: 15000, totalUsd: 75, statementCount: 1 },
+  describe('getSummaryByUserDateRange', () => {
+    it('should return summary with available months and monthly data', async () => {
+      statementRepository.getAvailableMonths.mockResolvedValue([
+        { year: 2024, month: 3 },
+        { year: 2024, month: 2 },
+        { year: 2024, month: 1 },
       ]);
-      expenseRepository.getCardBreakdownByUserAndYear.mockResolvedValue([
+      statementRepository.getMonthlyAggregatesInDateRange.mockResolvedValue([
+        { year: 2024, month: 1, totalArs: 10000, totalUsd: 50, statementCount: 2 },
+        { year: 2024, month: 2, totalArs: 15000, totalUsd: 75, statementCount: 1 },
+      ]);
+      expenseRepository.getCardBreakdownByUserInDateRange.mockResolvedValue([
         { cardId: 'card-1', customName: 'Visa', lastFourDigits: '1234', totalArs: 8000, totalUsd: 40 },
       ]);
 
-      const result = await service.getSummaryByUser(mockUserId, 2024);
+      const result = await service.getSummaryByUserDateRange(mockUserId, 2024, 3);
 
-      expect(statementRepository.getAvailableYears).toHaveBeenCalledWith(mockUserId);
-      expect(statementRepository.getMonthlyAggregates).toHaveBeenCalledWith(mockUserId, 2024);
-      expect(expenseRepository.getCardBreakdownByUserAndYear).toHaveBeenCalledWith(mockUserId, 2024);
+      expect(statementRepository.getAvailableMonths).toHaveBeenCalledWith(mockUserId);
+      expect(statementRepository.getMonthlyAggregatesInDateRange).toHaveBeenCalled();
+      expect(expenseRepository.getCardBreakdownByUserInDateRange).toHaveBeenCalled();
 
-      expect(result.availableYears).toEqual([2024, 2023]);
-      expect(result.yearSummary.year).toBe(2024);
-      expect(result.yearSummary.totalArs).toBe(25000);
-      expect(result.yearSummary.totalUsd).toBe(125);
-      expect(result.yearSummary.monthlyData).toHaveLength(2);
+      expect(result.availableMonths).toHaveLength(3);
+      expect(result.rangeSummary.totalArs).toBe(25000);
+      expect(result.rangeSummary.totalUsd).toBe(125);
+      expect(result.rangeSummary.monthlyData).toHaveLength(2);
       expect(result.cardBreakdown).toHaveLength(1);
     });
 
     it('should handle empty data', async () => {
-      statementRepository.getAvailableYears.mockResolvedValue([]);
-      statementRepository.getMonthlyAggregates.mockResolvedValue([]);
-      expenseRepository.getCardBreakdownByUserAndYear.mockResolvedValue([]);
+      statementRepository.getAvailableMonths.mockResolvedValue([]);
+      statementRepository.getMonthlyAggregatesInDateRange.mockResolvedValue([]);
+      expenseRepository.getCardBreakdownByUserInDateRange.mockResolvedValue([]);
 
-      const result = await service.getSummaryByUser(mockUserId, 2024);
+      const result = await service.getSummaryByUserDateRange(mockUserId, 2024, 1);
 
-      expect(result.availableYears).toEqual([]);
-      expect(result.yearSummary.totalArs).toBe(0);
-      expect(result.yearSummary.totalUsd).toBe(0);
-      expect(result.yearSummary.monthlyData).toEqual([]);
+      expect(result.availableMonths).toEqual([]);
+      expect(result.rangeSummary.totalArs).toBe(0);
+      expect(result.rangeSummary.totalUsd).toBe(0);
+      expect(result.rangeSummary.monthlyData).toEqual([]);
       expect(result.cardBreakdown).toEqual([]);
+    });
+  });
+
+  describe('findAllByUserInDateRange', () => {
+    it('should call repository with date range', async () => {
+      const mockStatements = [createMockStatement()];
+      statementRepository.findAllByUserInDateRange.mockResolvedValue(mockStatements);
+
+      const result = await service.findAllByUserInDateRange(mockUserId, 2024, 3);
+
+      expect(statementRepository.findAllByUserInDateRange).toHaveBeenCalled();
+      expect(result).toEqual(mockStatements);
     });
   });
 

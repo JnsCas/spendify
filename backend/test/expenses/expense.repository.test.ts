@@ -146,7 +146,7 @@ describe('ExpenseRepository', () => {
     });
   });
 
-  describe('getCardBreakdownByUserAndYear', () => {
+  describe('getCardBreakdownByUserInDateRange', () => {
     it('should return card breakdown with totals', async () => {
       const mockResult = [
         {
@@ -160,13 +160,16 @@ describe('ExpenseRepository', () => {
       const qb = createMockQueryBuilder(mockResult);
       typeOrmRepository.createQueryBuilder!.mockReturnValue(qb);
 
-      const result = await repository.getCardBreakdownByUserAndYear(mockUserId, 2024);
+      const startDate = new Date(2024, 0, 1);
+      const endDate = new Date(2024, 11, 31);
+      const result = await repository.getCardBreakdownByUserInDateRange(mockUserId, startDate, endDate);
 
       expect(typeOrmRepository.createQueryBuilder).toHaveBeenCalledWith('e');
       expect(qb.leftJoin).toHaveBeenCalledWith('e.statement', 's');
       expect(qb.leftJoin).toHaveBeenCalledWith('e.card', 'c');
       expect(qb.where).toHaveBeenCalledWith('s.userId = :userId', { userId: mockUserId });
-      expect(qb.andWhere).toHaveBeenCalledWith('EXTRACT(YEAR FROM s.statementDate) = :year', { year: 2024 });
+      expect(qb.andWhere).toHaveBeenCalledWith('s.statementDate >= :startDate', { startDate });
+      expect(qb.andWhere).toHaveBeenCalledWith('s.statementDate <= :endDate', { endDate });
       expect(result).toEqual([
         {
           cardId: 'card-1',
@@ -191,7 +194,9 @@ describe('ExpenseRepository', () => {
       const qb = createMockQueryBuilder(mockResult);
       typeOrmRepository.createQueryBuilder!.mockReturnValue(qb);
 
-      const result = await repository.getCardBreakdownByUserAndYear(mockUserId, 2024);
+      const startDate = new Date(2024, 0, 1);
+      const endDate = new Date(2024, 11, 31);
+      const result = await repository.getCardBreakdownByUserInDateRange(mockUserId, startDate, endDate);
 
       expect(result[0].cardId).toBeNull();
       expect(result[0].customName).toBeNull();

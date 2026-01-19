@@ -44,17 +44,20 @@ export const authApi = {
 
 // Statements API
 export const statementsApi = {
-  getAll: async (year?: number, month?: number) => {
+  getAll: async (endYear?: number, endMonth?: number) => {
     const params = new URLSearchParams()
-    if (year) params.append('year', year.toString())
-    if (month) params.append('month', month.toString())
+    if (endYear) params.append('endYear', endYear.toString())
+    if (endMonth) params.append('endMonth', endMonth.toString())
     const query = params.toString()
     const { data } = await api.get(`/statements${query ? `?${query}` : ''}`)
     return data
   },
-  getSummary: async (year?: number) => {
-    const params = year ? `?year=${year}` : ''
-    const { data } = await api.get(`/statements/summary${params}`)
+  getSummary: async (endYear?: number, endMonth?: number) => {
+    const params = new URLSearchParams()
+    if (endYear) params.append('endYear', endYear.toString())
+    if (endMonth) params.append('endMonth', endMonth.toString())
+    const query = params.toString()
+    const { data } = await api.get(`/statements/summary${query ? `?${query}` : ''}`)
     return data
   },
   getOne: async (id: string) => {

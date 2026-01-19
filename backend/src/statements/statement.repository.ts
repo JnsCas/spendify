@@ -14,9 +14,15 @@ export interface CreateStatementData {
 
 export interface MonthlyData {
   month: number;
+  year: number;
   totalArs: number;
   totalUsd: number;
   statementCount: number;
+}
+
+export interface AvailableMonth {
+  year: number;
+  month: number;
 }
 
 @Injectable()
@@ -59,62 +65,68 @@ export class StatementRepository {
     await this.repository.remove(statement);
   }
 
-  async findAllByUserFiltered(
-    userId: string,
-    year?: number,
-    month?: number,
-  ): Promise<Statement[]> {
-    const query = this.repository
-      .createQueryBuilder('statement')
-      .where('statement.userId = :userId', { userId })
-      .orderBy('statement.statementDate', 'DESC')
-      .addOrderBy('statement.createdAt', 'DESC');
-
-    if (year) {
-      query.andWhere('EXTRACT(YEAR FROM statement.statementDate) = :year', {
-        year,
-      });
-    }
-
-    if (month) {
-      query.andWhere('EXTRACT(MONTH FROM statement.statementDate) = :month', {
-        month,
-      });
-    }
-
-    return query.getMany();
-  }
-
-  async getAvailableYears(userId: string): Promise<number[]> {
-    const result = await this.repository
-      .createQueryBuilder('statement')
-      .select('DISTINCT EXTRACT(YEAR FROM statement.statementDate)', 'year')
-      .where('statement.userId = :userId', { userId })
-      .andWhere('statement.statementDate IS NOT NULL')
-      .orderBy('year', 'DESC')
-      .getRawMany();
-
-    return result
-      .map((r) => parseInt(r.year, 10))
-      .filter((y) => !isNaN(y));
-  }
-
-  async getMonthlyAggregates(userId: string, year: number): Promise<MonthlyData[]> {
+  async getAvailableMonths(userId: string): Promise<AvailableMonth[]> {
     const result = await this.repository
       .createQueryBuilder('statement')
       .select([
+        'EXTRACT(YEAR FROM statement.statementDate) as year',
+        'EXTRACT(MONTH FROM statement.statementDate) as month',
+      ])
+      .distinct(true)
+      .where('statement.userId = :userId', { userId })
+      .andWhere('statement.statementDate IS NOT NULL')
+      .orderBy('year', 'DESC')
+      .addOrderBy('month', 'DESC')
+      .getRawMany();
+
+    return result
+      .map((r) => ({
+        year: parseInt(r.year, 10),
+        month: parseInt(r.month, 10),
+      }))
+      .filter((m) => !isNaN(m.year) && !isNaN(m.month));
+  }
+
+  async findAllByUserInDateRange(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<Statement[]> {
+    return this.repository
+      .createQueryBuilder('statement')
+      .where('statement.userId = :userId', { userId })
+      .andWhere('statement.statementDate >= :startDate', { startDate })
+      .andWhere('statement.statementDate <= :endDate', { endDate })
+      .orderBy('statement.statementDate', 'DESC')
+      .addOrderBy('statement.createdAt', 'DESC')
+      .getMany();
+  }
+
+  async getMonthlyAggregatesInDateRange(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<MonthlyData[]> {
+    const result = await this.repository
+      .createQueryBuilder('statement')
+      .select([
+        'EXTRACT(YEAR FROM statement.statementDate) as year',
         'EXTRACT(MONTH FROM statement.statementDate) as month',
         'COALESCE(SUM(statement.totalArs), 0) as "totalArs"',
         'COALESCE(SUM(statement.totalUsd), 0) as "totalUsd"',
         'COUNT(*) as "statementCount"',
       ])
       .where('statement.userId = :userId', { userId })
-      .andWhere('EXTRACT(YEAR FROM statement.statementDate) = :year', { year })
-      .groupBy('EXTRACT(MONTH FROM statement.statementDate)')
-      .orderBy('month', 'ASC')
+      .andWhere('statement.statementDate >= :startDate', { startDate })
+      .andWhere('statement.statementDate <= :endDate', { endDate })
+      .groupBy('EXTRACT(YEAR FROM statement.statementDate)')
+      .addGroupBy('EXTRACT(MONTH FROM statement.statementDate)')
+      .orderBy('year', 'ASC')
+      .addOrderBy('month', 'ASC')
       .getRawMany();
 
     return result.map((r) => ({
+      year: parseInt(r.year, 10),
       month: parseInt(r.month, 10),
       totalArs: parseFloat(r.totalArs) || 0,
       totalUsd: parseFloat(r.totalUsd) || 0,

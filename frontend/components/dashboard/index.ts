@@ -1,5 +1,6 @@
 export { DashboardCharts } from './DashboardCharts'
 export { YearPaginator } from './YearPaginator'
+export { MonthPaginator } from './MonthPaginator'
 export { MonthlyGrid } from './MonthlyGrid'
 export { MonthCard } from './MonthCard'
 export { CircularProgress } from './CircularProgress'
