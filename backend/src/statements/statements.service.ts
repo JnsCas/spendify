@@ -44,10 +44,6 @@ export class StatementsService {
     private statementQueue: Queue,
   ) {}
 
-  private calculateFileHash(buffer: Buffer): string {
-    return crypto.createHash('sha256').update(buffer).digest('hex');
-  }
-
   async create(
     userId: string,
     file: Express.Multer.File,
@@ -90,25 +86,6 @@ export class StatementsService {
 
   async findPendingOrProcessing(userId: string): Promise<Statement[]> {
     return this.statementRepository.findPendingOrProcessing(userId);
-  }
-
-  private calculateDateRange(
-    endYear: number,
-    endMonth: number,
-  ): { startDate: Date; endDate: Date } {
-    // End date is the last day of the end month
-    const endDate = new Date(endYear, endMonth, 0); // Day 0 of next month = last day of this month
-
-    // Start date is 11 months before (12 months total including end month)
-    let startMonth = endMonth - 11;
-    let startYear = endYear;
-    if (startMonth <= 0) {
-      startMonth += 12;
-      startYear -= 1;
-    }
-    const startDate = new Date(startYear, startMonth - 1, 1); // First day of start month
-
-    return { startDate, endDate };
   }
 
   async getSummaryByUserDateRange(
@@ -246,5 +223,28 @@ export class StatementsService {
 
   async hasAnyByUser(userId: string): Promise<boolean> {
     return this.statementRepository.hasAnyByUser(userId);
+  }
+
+  private calculateFileHash(buffer: Buffer): string {
+    return crypto.createHash('sha256').update(buffer).digest('hex');
+  }
+
+  private calculateDateRange(
+    endYear: number,
+    endMonth: number,
+  ): { startDate: Date; endDate: Date } {
+    // End date is the last day of the end month
+    const endDate = new Date(endYear, endMonth, 0); // Day 0 of next month = last day of this month
+
+    // Start date is 11 months before (12 months total including end month)
+    let startMonth = endMonth - 11;
+    let startYear = endYear;
+    if (startMonth <= 0) {
+      startMonth += 12;
+      startYear -= 1;
+    }
+    const startDate = new Date(startYear, startMonth - 1, 1); // First day of start month
+
+    return { startDate, endDate };
   }
 }
