@@ -9,23 +9,32 @@ import {
   CartesianGrid,
   Tooltip,
 } from 'recharts'
-import { MONTH_SHORT_NAMES, MonthlyData } from '@/lib/types/dashboard'
+import {
+  MONTH_SHORT_NAMES,
+  MonthlyData,
+  EndMonth,
+  generate12MonthSequence,
+} from '@/lib/types/dashboard'
 
 type Currency = 'ARS' | 'USD'
 
 interface SpendingTrendChartProps {
   monthlyData: MonthlyData[]
-  currentYear: number
+  endMonth: EndMonth
   currency: Currency
 }
 
 interface ChartDataPoint {
   month: string
   monthNum: number
+  year: number
   value: number
 }
 
-const CURRENCY_CONFIG: Record<Currency, { color: string; label: string; locale: string }> = {
+const CURRENCY_CONFIG: Record<
+  Currency,
+  { color: string; label: string; locale: string }
+> = {
   ARS: { color: '#3b82f6', label: 'Argentine Peso', locale: 'es-AR' },
   USD: { color: '#10b981', label: 'US Dollar', locale: 'en-US' },
 }
@@ -41,27 +50,36 @@ const formatCurrency = (value: number, currency: Currency) => {
 
 export function SpendingTrendChart({
   monthlyData,
-  currentYear,
+  endMonth,
   currency,
 }: SpendingTrendChartProps) {
   const config = CURRENCY_CONFIG[currency]
 
-  // Get current month for limiting display in current year
-  const now = new Date()
-  const isCurrentYear = currentYear === now.getFullYear()
-  const maxMonth = isCurrentYear ? now.getMonth() + 1 : 12
+  // Generate the 12-month sequence
+  const monthSequence = generate12MonthSequence(endMonth)
 
-  // Transform data for the chart - fill in missing months with 0
-  const chartData: ChartDataPoint[] = []
-  for (let month = 1; month <= maxMonth; month++) {
-    const monthData = monthlyData.find((m) => m.month === month)
-    const value = currency === 'ARS' ? monthData?.totalArs : monthData?.totalUsd
-    chartData.push({
-      month: MONTH_SHORT_NAMES[month - 1],
+  // Filter out future months
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const currentMonth = now.getMonth() + 1
+  const filteredSequence = monthSequence.filter(({ year, month }) => {
+    if (year < currentYear) return true
+    if (year === currentYear) return month <= currentMonth
+    return false
+  })
+
+  // Transform data for the chart
+  const chartData: ChartDataPoint[] = filteredSequence.map(({ year, month }) => {
+    const data = monthlyData.find((m) => m.year === year && m.month === month)
+    const value = currency === 'ARS' ? data?.totalArs : data?.totalUsd
+
+    return {
+      month: `${MONTH_SHORT_NAMES[month - 1]} '${String(year).slice(-2)}`,
       monthNum: month,
+      year,
       value: value || 0,
-    })
-  }
+    }
+  })
 
   const hasData = chartData.some((d) => d.value > 0)
 
@@ -84,7 +102,13 @@ export function SpendingTrendChart({
           margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
         >
           <defs>
-            <linearGradient id={`gradient-${currency}`} x1="0" y1="0" x2="0" y2="1">
+            <linearGradient
+              id={`gradient-${currency}`}
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
               <stop offset="5%" stopColor={config.color} stopOpacity={0.3} />
               <stop offset="95%" stopColor={config.color} stopOpacity={0} />
             </linearGradient>
@@ -107,7 +131,10 @@ export function SpendingTrendChart({
               border: '1px solid #e5e7eb',
               borderRadius: '8px',
             }}
-            formatter={(value) => [formatCurrency(value as number, currency), currency]}
+            formatter={(value) => [
+              formatCurrency(value as number, currency),
+              currency,
+            ]}
           />
           <Area
             type="monotone"

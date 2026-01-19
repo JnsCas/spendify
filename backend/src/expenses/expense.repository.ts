@@ -62,9 +62,10 @@ export class ExpenseRepository {
     await this.repository.delete({ statementId });
   }
 
-  async getCardBreakdownByUserAndYear(
+  async getCardBreakdownByUserInDateRange(
     userId: string,
-    year: number,
+    startDate: Date,
+    endDate: Date,
   ): Promise<CardBreakdown[]> {
     const result = await this.repository
       .createQueryBuilder('e')
@@ -78,7 +79,8 @@ export class ExpenseRepository {
         'COALESCE(SUM(e.amountUsd), 0) as "totalUsd"',
       ])
       .where('s.userId = :userId', { userId })
-      .andWhere('EXTRACT(YEAR FROM s.statementDate) = :year', { year })
+      .andWhere('s.statementDate >= :startDate', { startDate })
+      .andWhere('s.statementDate <= :endDate', { endDate })
       .groupBy('e.cardId')
       .addGroupBy('c.customName')
       .addGroupBy('c.lastFourDigits')

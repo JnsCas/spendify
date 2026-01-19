@@ -1,10 +1,15 @@
 'use client'
 
 import { MonthCard } from './MonthCard'
-import { MonthlyData, Statement } from '@/lib/types/dashboard'
+import {
+  Statement,
+  EndMonth,
+  generate12MonthSequence,
+  MonthlyData,
+} from '@/lib/types/dashboard'
 
 interface MonthlyGridProps {
-  year: number
+  endMonth: EndMonth
   monthlyData: MonthlyData[]
   statements: Statement[]
   onStatementClick: (id: string) => void
@@ -12,57 +17,62 @@ interface MonthlyGridProps {
 }
 
 export function MonthlyGrid({
-  year,
+  endMonth,
   monthlyData,
   statements,
   onStatementClick,
   loading,
 }: MonthlyGridProps) {
-  // Get current date info
   const now = new Date()
   const currentYear = now.getFullYear()
-  const currentMonth = now.getMonth() + 1 // 1-12
+  const currentMonth = now.getMonth() + 1
 
-  // Determine how many months to show
-  const isCurrentYear = year === currentYear
-  const monthsToShow = isCurrentYear ? currentMonth : 12
+  // Generate the 12-month sequence
+  const monthSequence = generate12MonthSequence(endMonth)
 
-  // Group statements by month
-  const statementsByMonth: Record<number, Statement[]> = {}
+  // Filter out future months
+  const monthsToShow = monthSequence.filter(({ year, month }) => {
+    if (year < currentYear) return true
+    if (year === currentYear) return month <= currentMonth
+    return false
+  })
+
+  // Group statements by year-month
+  const statementsByYearMonth: Record<string, Statement[]> = {}
   statements.forEach((statement) => {
     if (statement.statementDate) {
       const date = new Date(statement.statementDate)
-      const month = date.getMonth() + 1
-      if (!statementsByMonth[month]) {
-        statementsByMonth[month] = []
+      const key = `${date.getFullYear()}-${date.getMonth() + 1}`
+      if (!statementsByYearMonth[key]) {
+        statementsByYearMonth[key] = []
       }
-      statementsByMonth[month].push(statement)
+      statementsByYearMonth[key].push(statement)
     }
   })
 
   // Filter months that have spending data
   const monthsWithSpending = monthlyData.filter((m) => m.totalArs > 0)
 
-  // Find the month with highest spending (using ARS as primary)
+  // Find highest spending month
   const highestSpendingMonth =
     monthsWithSpending.length > 0
       ? monthsWithSpending.reduce((highest, current) =>
           current.totalArs > highest.totalArs ? current : highest
-        ).month
+        )
       : null
 
-  // Find the month with lowest spending (only if there are at least 2 months with data)
+  // Find lowest spending month (only if there are at least 2 months with data)
   const lowestSpendingMonth =
     monthsWithSpending.length > 1
       ? monthsWithSpending.reduce((lowest, current) =>
           current.totalArs < lowest.totalArs ? current : lowest
-        ).month
+        )
       : null
 
   if (loading) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {Array.from({ length: monthsToShow }, (_, i) => (
+        {Array.from({ length: monthsToShow.length }, (_, i) => (
           <div
             key={i}
             className="h-[200px] animate-pulse rounded-lg bg-gray-200"
@@ -74,13 +84,25 @@ export function MonthlyGrid({
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {Array.from({ length: monthsToShow }, (_, i) => i + 1).map((month) => {
-        const monthData = monthlyData.find((m) => m.month === month)
-        const monthStatements = statementsByMonth[month] || []
+      {monthsToShow.map(({ year, month }) => {
+        const key = `${year}-${month}`
+        const monthData = monthlyData.find(
+          (m) => m.year === year && m.month === month
+        )
+        const monthStatements = statementsByYearMonth[key] || []
+
+        const isHighest =
+          highestSpendingMonth &&
+          highestSpendingMonth.year === year &&
+          highestSpendingMonth.month === month
+        const isLowest =
+          lowestSpendingMonth &&
+          lowestSpendingMonth.year === year &&
+          lowestSpendingMonth.month === month
 
         return (
           <MonthCard
-            key={month}
+            key={key}
             month={month}
             year={year}
             totalArs={monthData?.totalArs || 0}
@@ -88,8 +110,8 @@ export function MonthlyGrid({
             statementCount={monthData?.statementCount || 0}
             statements={monthStatements}
             onStatementClick={onStatementClick}
-            isHighestSpending={month === highestSpendingMonth}
-            isLowestSpending={month === lowestSpendingMonth}
+            isHighestSpending={isHighest || false}
+            isLowestSpending={isLowest || false}
           />
         )
       })}

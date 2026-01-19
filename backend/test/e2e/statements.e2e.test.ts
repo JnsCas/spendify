@@ -110,47 +110,52 @@ describe('Statements (e2e)', () => {
       expect(response.body).toHaveLength(3);
     });
 
-    it('should filter statements by year query param', async () => {
+    it('should filter statements by date range using endYear and endMonth', async () => {
+      // Create statements in different months
       await createStatement({ statementDate: new Date('2024-01-15') });
       await createStatement({ statementDate: new Date('2024-06-15') });
       await createStatement({ statementDate: new Date('2023-06-15') });
 
+      // Request 12 months ending June 2024 (Jul 2023 - Jun 2024)
       const response = await request(app.getHttpServer())
-        .get('/statements?year=2024')
+        .get('/statements?endYear=2024&endMonth=6')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
+      // Should include Jan 2024 and Jun 2024 (both in range Jul 2023 - Jun 2024)
+      // Should NOT include Jun 2023 (before range)
       expect(response.body).toHaveLength(2);
       response.body.forEach((statement: Statement) => {
-        const year = new Date(statement.statementDate).getFullYear();
-        expect(year).toBe(2024);
+        const date = new Date(statement.statementDate);
+        // All should be within Jul 2023 - Jun 2024
+        expect(date >= new Date('2023-07-01')).toBe(true);
+        expect(date <= new Date('2024-06-30')).toBe(true);
       });
     });
 
-    it('should filter statements by year and month query params', async () => {
+    it('should filter statements by 12-month range', async () => {
       await createStatement({ statementDate: new Date('2024-01-15') });
       await createStatement({ statementDate: new Date('2024-01-20') });
       await createStatement({ statementDate: new Date('2024-02-15') });
       await createStatement({ statementDate: new Date('2023-01-15') });
 
+      // Request 12 months ending Feb 2024 (Mar 2023 - Feb 2024)
       const response = await request(app.getHttpServer())
-        .get('/statements?year=2024&month=1')
+        .get('/statements?endYear=2024&endMonth=2')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
-      expect(response.body).toHaveLength(2);
-      response.body.forEach((statement: Statement) => {
-        const date = new Date(statement.statementDate);
-        expect(date.getFullYear()).toBe(2024);
-        expect(date.getMonth()).toBe(0); // January is 0
-      });
+      // Should include: Jan 2024 (x2), Feb 2024 (all in range)
+      // Should NOT include: Jan 2023 (before Mar 2023)
+      expect(response.body).toHaveLength(3);
     });
 
-    it('should return empty array when no statements match filters', async () => {
+    it('should return empty array when no statements match date range', async () => {
       await createStatement({ statementDate: new Date('2024-01-15') });
 
+      // Request 12 months ending Dec 2020 (Jan 2020 - Dec 2020)
       const response = await request(app.getHttpServer())
-        .get('/statements?year=2020')
+        .get('/statements?endYear=2020&endMonth=12')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
@@ -163,7 +168,7 @@ describe('Statements (e2e)', () => {
   });
 
   describe('GET /statements/summary', () => {
-    it('should return summary for specified year', async () => {
+    it('should return summary for specified date range', async () => {
       await createStatement({
         statementDate: new Date('2024-01-15'),
         totalArs: 10000,
@@ -176,29 +181,35 @@ describe('Statements (e2e)', () => {
       });
 
       const response = await request(app.getHttpServer())
-        .get('/statements/summary?year=2024')
+        .get('/statements/summary?endYear=2024&endMonth=2')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('availableYears');
-      expect(response.body).toHaveProperty('yearSummary');
+      expect(response.body).toHaveProperty('availableMonths');
+      expect(response.body).toHaveProperty('rangeSummary');
       expect(response.body).toHaveProperty('cardBreakdown');
-      expect(response.body.yearSummary.year).toBe(2024);
+      expect(response.body.rangeSummary).toHaveProperty('startDate');
+      expect(response.body.rangeSummary).toHaveProperty('endDate');
     });
 
-    it('should return available years list', async () => {
+    it('should return available months list', async () => {
+      await createStatement({ statementDate: new Date('2024-02-15') });
       await createStatement({ statementDate: new Date('2024-01-15') });
       await createStatement({ statementDate: new Date('2023-06-15') });
-      await createStatement({ statementDate: new Date('2022-03-15') });
 
       const response = await request(app.getHttpServer())
-        .get('/statements/summary?year=2024')
+        .get('/statements/summary?endYear=2024&endMonth=12')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
-      expect(response.body.availableYears).toContain(2024);
-      expect(response.body.availableYears).toContain(2023);
-      expect(response.body.availableYears).toContain(2022);
+      // Available months should include all months with data
+      expect(response.body.availableMonths).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ year: 2024, month: 2 }),
+          expect.objectContaining({ year: 2024, month: 1 }),
+          expect.objectContaining({ year: 2023, month: 6 }),
+        ]),
+      );
     });
 
     it('should return monthly aggregates', async () => {
@@ -218,16 +229,17 @@ describe('Statements (e2e)', () => {
         totalUsd: 40,
       });
 
+      // Request 12 months ending March 2024 (includes Jan and Mar 2024)
       const response = await request(app.getHttpServer())
-        .get('/statements/summary?year=2024')
+        .get('/statements/summary?endYear=2024&endMonth=3')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
-      const { monthlyData } = response.body.yearSummary;
+      const { monthlyData } = response.body.rangeSummary;
 
       // Find January data
       const januaryData = monthlyData.find(
-        (m: { month: number }) => m.month === 1,
+        (m: { month: number; year: number }) => m.month === 1 && m.year === 2024,
       );
       expect(januaryData).toBeDefined();
       expect(januaryData.totalArs).toBe(15000);
@@ -236,7 +248,7 @@ describe('Statements (e2e)', () => {
 
       // Find March data
       const marchData = monthlyData.find(
-        (m: { month: number }) => m.month === 3,
+        (m: { month: number; year: number }) => m.month === 3 && m.year === 2024,
       );
       expect(marchData).toBeDefined();
       expect(marchData.totalArs).toBe(8000);
@@ -261,18 +273,22 @@ describe('Statements (e2e)', () => {
       await createExpense(statement.id, card1.id, {
         amountArs: 5000,
         amountUsd: 25,
+        purchaseDate: new Date('2024-01-10'),
       });
       await createExpense(statement.id, card1.id, {
         amountArs: 3000,
         amountUsd: 15,
+        purchaseDate: new Date('2024-01-12'),
       });
       await createExpense(statement.id, card2.id, {
         amountArs: 2000,
         amountUsd: 10,
+        purchaseDate: new Date('2024-01-14'),
       });
 
+      // Request 12 months ending Jan 2024 (includes Jan 2024)
       const response = await request(app.getHttpServer())
-        .get('/statements/summary?year=2024')
+        .get('/statements/summary?endYear=2024&endMonth=1')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
@@ -282,21 +298,24 @@ describe('Statements (e2e)', () => {
         (c: { customName: string }) => c.customName === 'Visa',
       );
       expect(visaBreakdown).toBeDefined();
-      expect(visaBreakdown.totalArs).toBe(8000);
-      expect(visaBreakdown.totalUsd).toBe(40);
+      expect(parseFloat(visaBreakdown.totalArs)).toBe(8000);
+      expect(parseFloat(visaBreakdown.totalUsd)).toBe(40);
 
       const mastercardBreakdown = response.body.cardBreakdown.find(
         (c: { customName: string }) => c.customName === 'Mastercard',
       );
       expect(mastercardBreakdown).toBeDefined();
-      expect(mastercardBreakdown.totalArs).toBe(2000);
-      expect(mastercardBreakdown.totalUsd).toBe(10);
+      expect(parseFloat(mastercardBreakdown.totalArs)).toBe(2000);
+      expect(parseFloat(mastercardBreakdown.totalUsd)).toBe(10);
     });
 
-    it('should default to current year when year not specified', async () => {
-      const currentYear = new Date().getFullYear();
+    it('should default to current month when not specified', async () => {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+
       await createStatement({
-        statementDate: new Date(`${currentYear}-01-15`),
+        statementDate: new Date(`${currentYear}-${String(currentMonth).padStart(2, '0')}-15`),
       });
 
       const response = await request(app.getHttpServer())
@@ -304,25 +323,29 @@ describe('Statements (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
-      expect(response.body.yearSummary.year).toBe(currentYear);
+      // The end date should be the last day of current month
+      const endDate = new Date(response.body.rangeSummary.endDate);
+      expect(endDate.getFullYear()).toBe(currentYear);
+      expect(endDate.getMonth() + 1).toBe(currentMonth);
     });
 
-    it('should return empty data for year with no statements', async () => {
+    it('should return empty data for date range with no statements', async () => {
       await createStatement({ statementDate: new Date('2024-01-15') });
 
+      // Request 12 months ending Dec 2020 - no statements in this range
       const response = await request(app.getHttpServer())
-        .get('/statements/summary?year=2020')
+        .get('/statements/summary?endYear=2020&endMonth=12')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
-      expect(response.body.yearSummary.monthlyData).toHaveLength(0);
-      expect(response.body.yearSummary.totalArs).toBe(0);
-      expect(response.body.yearSummary.totalUsd).toBe(0);
+      expect(response.body.rangeSummary.monthlyData).toHaveLength(0);
+      expect(response.body.rangeSummary.totalArs).toBe(0);
+      expect(response.body.rangeSummary.totalUsd).toBe(0);
     });
 
     it('should reject request without authentication', async () => {
       await request(app.getHttpServer())
-        .get('/statements/summary?year=2024')
+        .get('/statements/summary?endYear=2024&endMonth=1')
         .expect(401);
     });
   });

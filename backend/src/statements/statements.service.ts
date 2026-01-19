@@ -3,7 +3,11 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import * as crypto from 'crypto';
 import { Statement, StatementStatus } from './statement.entity';
-import { StatementRepository, MonthlyData } from './statement.repository';
+import {
+  StatementRepository,
+  AvailableMonth,
+  MonthlyData,
+} from './statement.repository';
 import { ExpenseRepository, CardBreakdown } from '../expenses/expense.repository';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -19,10 +23,11 @@ export interface BulkUploadResult {
   duplicates: DuplicateFile[];
 }
 
-export interface StatementSummaryResponse {
-  availableYears: number[];
-  yearSummary: {
-    year: number;
+export interface RangeSummaryResponse {
+  availableMonths: AvailableMonth[];
+  rangeSummary: {
+    startDate: string;
+    endDate: string;
     totalArs: number;
     totalUsd: number;
     monthlyData: MonthlyData[];
@@ -38,10 +43,6 @@ export class StatementsService {
     @InjectQueue('statement-processing')
     private statementQueue: Queue,
   ) {}
-
-  private calculateFileHash(buffer: Buffer): string {
-    return crypto.createHash('sha256').update(buffer).digest('hex');
-  }
 
   async create(
     userId: string,
@@ -83,45 +84,65 @@ export class StatementsService {
     return this.statementRepository.findAllByUser(userId);
   }
 
-  async findAllByUserFiltered(
-    userId: string,
-    year?: number,
-    month?: number,
-  ): Promise<Statement[]> {
-    return this.statementRepository.findAllByUserFiltered(userId, year, month);
-  }
-
   async findPendingOrProcessing(userId: string): Promise<Statement[]> {
     return this.statementRepository.findPendingOrProcessing(userId);
   }
 
-  async getSummaryByUser(
+  async getSummaryByUserDateRange(
     userId: string,
-    year: number,
-  ): Promise<StatementSummaryResponse> {
-    // Get available years (distinct years from statements)
-    const availableYears = await this.statementRepository.getAvailableYears(userId);
+    endYear: number,
+    endMonth: number,
+  ): Promise<RangeSummaryResponse> {
+    const { startDate, endDate } = this.calculateDateRange(endYear, endMonth);
 
-    // Get monthly aggregates for the requested year
-    const monthlyData = await this.statementRepository.getMonthlyAggregates(userId, year);
+    // Get available months for the dropdown
+    const availableMonths =
+      await this.statementRepository.getAvailableMonths(userId);
 
-    // Calculate year totals
-    const yearTotalArs = monthlyData.reduce((sum, m) => sum + m.totalArs, 0);
-    const yearTotalUsd = monthlyData.reduce((sum, m) => sum + m.totalUsd, 0);
+    // Get monthly aggregates for the 12-month range
+    const monthlyData =
+      await this.statementRepository.getMonthlyAggregatesInDateRange(
+        userId,
+        startDate,
+        endDate,
+      );
 
-    // Get card breakdown from expenses for the year
-    const cardBreakdown = await this.expenseRepository.getCardBreakdownByUserAndYear(userId, year);
+    // Calculate totals
+    const totalArs = monthlyData.reduce((sum, m) => sum + m.totalArs, 0);
+    const totalUsd = monthlyData.reduce((sum, m) => sum + m.totalUsd, 0);
+
+    // Get card breakdown for the range
+    const cardBreakdown =
+      await this.expenseRepository.getCardBreakdownByUserInDateRange(
+        userId,
+        startDate,
+        endDate,
+      );
 
     return {
-      availableYears,
-      yearSummary: {
-        year,
-        totalArs: yearTotalArs,
-        totalUsd: yearTotalUsd,
+      availableMonths,
+      rangeSummary: {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
+        totalArs,
+        totalUsd,
         monthlyData,
       },
       cardBreakdown,
     };
+  }
+
+  async findAllByUserInDateRange(
+    userId: string,
+    endYear: number,
+    endMonth: number,
+  ): Promise<Statement[]> {
+    const { startDate, endDate } = this.calculateDateRange(endYear, endMonth);
+    return this.statementRepository.findAllByUserInDateRange(
+      userId,
+      startDate,
+      endDate,
+    );
   }
 
   async findOne(id: string, userId: string): Promise<Statement> {
@@ -202,5 +223,28 @@ export class StatementsService {
 
   async hasAnyByUser(userId: string): Promise<boolean> {
     return this.statementRepository.hasAnyByUser(userId);
+  }
+
+  private calculateFileHash(buffer: Buffer): string {
+    return crypto.createHash('sha256').update(buffer).digest('hex');
+  }
+
+  private calculateDateRange(
+    endYear: number,
+    endMonth: number,
+  ): { startDate: Date; endDate: Date } {
+    // End date is the last day of the end month
+    const endDate = new Date(endYear, endMonth, 0); // Day 0 of next month = last day of this month
+
+    // Start date is 11 months before (12 months total including end month)
+    let startMonth = endMonth - 11;
+    let startYear = endYear;
+    if (startMonth <= 0) {
+      startMonth += 12;
+      startYear -= 1;
+    }
+    const startDate = new Date(startYear, startMonth - 1, 1); // First day of start month
+
+    return { startDate, endDate };
   }
 }

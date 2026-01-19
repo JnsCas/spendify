@@ -82,7 +82,12 @@ export function MonthCard({
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-gray-900">{monthName}</h3>
+            <h3 className="font-semibold text-gray-900">
+              {monthName}
+              <span className="ml-1 text-sm font-normal text-gray-500">
+                {year}
+              </span>
+            </h3>
             {isHighestSpending && (
               <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-medium text-white">
                 Highest

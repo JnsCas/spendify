@@ -21,7 +21,7 @@ import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '../users/user.entity';
-import { StatementsService, StatementSummaryResponse } from './statements.service';
+import { StatementsService, RangeSummaryResponse } from './statements.service';
 import { Statement } from './statement.entity';
 import {
   BulkUploadResponseDto,
@@ -123,17 +123,17 @@ export class StatementsController {
   @Get()
   async findAll(
     @CurrentUser() user: User,
-    @Query('year') year?: string,
-    @Query('month') month?: string,
+    @Query('endYear') endYear?: string,
+    @Query('endMonth') endMonth?: string,
   ): Promise<Statement[]> {
-    const yearNum = year ? parseInt(year, 10) : undefined;
-    const monthNum = month ? parseInt(month, 10) : undefined;
+    const endYearNum = endYear ? parseInt(endYear, 10) : undefined;
+    const endMonthNum = endMonth ? parseInt(endMonth, 10) : undefined;
 
-    if (yearNum || monthNum) {
-      return this.statementsService.findAllByUserFiltered(
+    if (endYearNum && endMonthNum) {
+      return this.statementsService.findAllByUserInDateRange(
         user.id,
-        yearNum,
-        monthNum,
+        endYearNum,
+        endMonthNum,
       );
     }
     return this.statementsService.findAllByUser(user.id);
@@ -142,10 +142,17 @@ export class StatementsController {
   @Get('summary')
   async getSummary(
     @CurrentUser() user: User,
-    @Query('year') year?: string,
-  ): Promise<StatementSummaryResponse> {
-    const yearNum = year ? parseInt(year, 10) : new Date().getFullYear();
-    return this.statementsService.getSummaryByUser(user.id, yearNum);
+    @Query('endYear') endYear?: string,
+    @Query('endMonth') endMonth?: string,
+  ): Promise<RangeSummaryResponse> {
+    const now = new Date();
+    const endYearNum = endYear ? parseInt(endYear, 10) : now.getFullYear();
+    const endMonthNum = endMonth ? parseInt(endMonth, 10) : now.getMonth() + 1;
+    return this.statementsService.getSummaryByUserDateRange(
+      user.id,
+      endYearNum,
+      endMonthNum,
+    );
   }
 
   @Get('processing')
