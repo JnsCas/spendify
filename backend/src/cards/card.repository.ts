@@ -9,10 +9,6 @@ export interface CreateCardData {
   customName?: string;
 }
 
-export interface UpdateCardData {
-  customName?: string;
-}
-
 @Injectable()
 export class CardRepository {
   constructor(
@@ -44,8 +40,7 @@ export class CardRepository {
     });
   }
 
-  async update(card: Card, data: UpdateCardData): Promise<Card> {
-    Object.assign(card, data);
+  async update(card: Card): Promise<Card> {
     return this.repository.save(card);
   }
 }

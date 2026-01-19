@@ -38,13 +38,13 @@ export const createMockStatement = (overrides: Partial<Statement> = {}): Stateme
 };
 
 export const createMockCard = (overrides: Partial<Card> = {}): Card => {
-  const card = new Card();
-  card.id = overrides.id || '123e4567-e89b-12d3-a456-426614174002';
-  card.userId = overrides.userId || '123e4567-e89b-12d3-a456-426614174000';
-  card.customName = overrides.customName || 'Visa';
-  card.lastFourDigits = overrides.lastFourDigits || '1234';
-  card.createdAt = overrides.createdAt || new Date('2024-01-01');
-  return card;
+  return new Card(
+    overrides.id || '123e4567-e89b-12d3-a456-426614174002',
+    overrides.userId || '123e4567-e89b-12d3-a456-426614174000',
+    overrides.customName || 'Visa',
+    overrides.lastFourDigits || '1234',
+    overrides.createdAt || new Date('2024-01-01'),
+  );
 };
 
 export const createMockExpense = (overrides: Partial<Expense> = {}): Expense => {

@@ -102,16 +102,14 @@ describe('CardRepository', () => {
   });
 
   describe('update', () => {
-    it('should update a card', async () => {
-      const mockCard = createMockCard();
-      const updateData = { customName: 'Updated Name' };
-      const updatedCard = { ...mockCard, ...updateData };
+    it('should save the card', async () => {
+      const mockCard = createMockCard({ customName: 'Updated Name' });
 
-      typeOrmRepository.save!.mockResolvedValue(updatedCard);
+      typeOrmRepository.save!.mockResolvedValue(mockCard);
 
-      const result = await repository.update(mockCard, updateData);
+      const result = await repository.update(mockCard);
 
-      expect(typeOrmRepository.save).toHaveBeenCalled();
+      expect(typeOrmRepository.save).toHaveBeenCalledWith(mockCard);
       expect(result.customName).toBe('Updated Name');
     });
   });

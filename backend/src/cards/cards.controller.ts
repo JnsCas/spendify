@@ -37,6 +37,6 @@ export class CardsController {
     @CurrentUser() user: User,
     @Body() updateDto: UpdateCardDto,
   ): Promise<Card> {
-    return this.cardsService.update(id, user.id, updateDto);
+    return this.cardsService.update(id, user.id, updateDto.customName);
   }
 }

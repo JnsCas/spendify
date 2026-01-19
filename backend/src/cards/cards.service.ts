@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Card } from './card.entity';
-import { CardRepository, CreateCardData, UpdateCardData } from './card.repository';
+import { CardRepository, CreateCardData } from './card.repository';
 
 @Injectable()
 export class CardsService {
@@ -35,8 +35,8 @@ export class CardsService {
     return card;
   }
 
-  async update(id: string, userId: string, data: UpdateCardData): Promise<Card> {
+  async update(id: string, userId: string, customName: string): Promise<Card> {
     const card = await this.findOne(id, userId);
-    return this.cardRepository.update(card, data);
+    return this.cardRepository.update(card.update(customName));
   }
 }

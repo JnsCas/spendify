@@ -12,6 +12,15 @@ import { Expense } from '../expenses/expense.entity';
 
 @Entity('cards')
 export class Card {
+
+  constructor(id: string, userId: string, customName: string, lastFourDigits: string, createdAt: Date) {
+    this.id = id;
+    this.userId = userId;
+    this.customName = customName;
+    this.lastFourDigits = lastFourDigits;
+    this.createdAt = createdAt;
+  }
+
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -33,4 +42,8 @@ export class Card {
 
   @OneToMany(() => Expense, (expense) => expense.card)
   expenses: Expense[];
+
+  update(customName: string): Card {
+    return new Card(this.id, this.userId, customName, this.lastFourDigits, this.createdAt);
+  }
 }
