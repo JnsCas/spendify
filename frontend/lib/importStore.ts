@@ -75,7 +75,15 @@ export const useImportStore = create<ImportState>()(
       },
 
       clearAll: () => {
-        set({ items: [], duplicates: [], uploadError: null })
+        // Only clear finished items (completed or failed), keep in-progress items
+        set((state) => ({
+          items: state.items.filter(
+            (item) =>
+              item.status !== 'completed' && item.status !== 'failed'
+          ),
+          duplicates: [],
+          uploadError: null,
+        }))
       },
 
       setUploading: (isUploading) => {

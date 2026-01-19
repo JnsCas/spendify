@@ -34,7 +34,7 @@ describe('CardRepository', () => {
     it('should create and save a card', async () => {
       const cardData = {
         userId: mockUserId,
-        cardName: 'Test Visa',
+        customName: 'Test Visa',
         lastFourDigits: '1234',
       };
       const mockCard = createMockCard(cardData);
@@ -87,31 +87,30 @@ describe('CardRepository', () => {
     });
   });
 
-  describe('findByIdentifier', () => {
-    it('should find card by last four digits or holder name', async () => {
+  describe('findByLastFourDigits', () => {
+    it('should find card by last four digits', async () => {
       const mockCard = createMockCard({ lastFourDigits: '1234' });
       typeOrmRepository.findOne!.mockResolvedValue(mockCard);
 
-      const result = await repository.findByIdentifier(mockUserId, '1234');
+      const result = await repository.findByLastFourDigits(mockUserId, '1234');
 
       expect(typeOrmRepository.findOne).toHaveBeenCalledWith({
-        where: [
-          { userId: mockUserId, lastFourDigits: '1234' },
-          { userId: mockUserId, holderName: '1234' },
-        ],
+        where: { userId: mockUserId, lastFourDigits: '1234' },
       });
       expect(result).toEqual(mockCard);
     });
   });
 
-  describe('remove', () => {
-    it('should remove a card', async () => {
-      const mockCard = createMockCard();
-      typeOrmRepository.remove!.mockResolvedValue(mockCard);
+  describe('update', () => {
+    it('should save the card', async () => {
+      const mockCard = createMockCard({ customName: 'Updated Name' });
 
-      await repository.remove(mockCard);
+      typeOrmRepository.save!.mockResolvedValue(mockCard);
 
-      expect(typeOrmRepository.remove).toHaveBeenCalledWith(mockCard);
+      const result = await repository.update(mockCard);
+
+      expect(typeOrmRepository.save).toHaveBeenCalledWith(mockCard);
+      expect(result.customName).toBe('Updated Name');
     });
   });
 });

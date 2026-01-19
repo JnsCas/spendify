@@ -7,7 +7,7 @@ export interface ParsedExpense {
   amount_usd: number | null;
   current_installment: number | null;
   total_installments: number | null;
-  card_identifier: string | null;
+  last_four_digits: string | null;
   purchase_date: string | null;
 }
 
@@ -67,15 +67,15 @@ export class AnthropicService {
     return `Parse Argentine credit card statement. Extract ALL expenses as JSON.
 
 OUTPUT FORMAT:
-{"expenses":[{"description":"str","amount_ars":num|null,"amount_usd":num|null,"current_installment":num|null,"total_installments":num|null,"card_identifier":"str"|null,"purchase_date":"YYYY-MM-DD"|null}],"summary":{"total_ars":num|null,"total_usd":num|null,"due_date":"YYYY-MM-DD"|null,"statement_date":"YYYY-MM-DD"|null}}
+{"expenses":[{"description":"str","amount_ars":num|null,"amount_usd":num|null,"current_installment":num|null,"total_installments":num|null,"last_four_digits":"str"|null,"purchase_date":"YYYY-MM-DD"|null}],"summary":{"total_ars":num|null,"total_usd":num|null,"due_date":"YYYY-MM-DD"|null,"statement_date":"YYYY-MM-DD"|null}}
 
 PARSING RULES:
 
 1. CARD IDENTIFICATION:
    - Look for credit card sections: "Tarjeta XXXX" or similar
-   - Extract last 4 digits as card_identifier (e.g., "Tarjeta 1234" → "1234")
+   - Extract last 4 digits as last_four_digits (e.g., "Tarjeta 1234" → "1234")
    - If multiple cards: use those 4 digits for expenses in that card's section
-   - Tax/fee items (IIBB, IVA, IMPUESTO DE SELLOS) → card_identifier=null
+   - Tax/fee items (IIBB, IVA, IMPUESTO DE SELLOS) → last_four_digits=null
 
 2. DATE FORMATS (convert all to YYYY-MM-DD):
    - DD.MM.YY → 16.08.25 = 2025-08-16
@@ -102,7 +102,7 @@ PARSING RULES:
 
 6. INCLUDE:
    - All individual expense/purchase lines
-   - Tax items: IMPUESTO DE SELLOS, IIBB, IVA, DB.RG (as separate expenses with card_identifier=null)
+   - Tax items: IMPUESTO DE SELLOS, IIBB, IVA, DB.RG (as separate expenses with last_four_digits=null)
 
 IMPORTANT: Sum of extracted amounts must match statement total. Extract ALL expenses. JSON only.
 

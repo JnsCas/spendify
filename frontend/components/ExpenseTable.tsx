@@ -12,7 +12,7 @@ interface Expense {
   purchaseDate: string | null
   card: {
     id: string
-    holderName: string | null
+    customName: string | null
     lastFourDigits: string | null
   } | null
 }
@@ -35,7 +35,7 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
     let hasNoCard = false
     expenses.forEach((e) => {
       if (e.card) {
-        const label = e.card.holderName || e.card.lastFourDigits || e.card.id
+        const label = e.card.customName || e.card.lastFourDigits || e.card.id
         uniqueCards.set(e.card.id, label)
       } else {
         hasNoCard = true
@@ -86,8 +86,8 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
           bVal = Number(b.amountUsd) || 0
           break
         case 'card':
-          aVal = a.card?.holderName || a.card?.lastFourDigits || ''
-          bVal = b.card?.holderName || b.card?.lastFourDigits || ''
+          aVal = a.card?.customName || a.card?.lastFourDigits || ''
+          bVal = b.card?.customName || b.card?.lastFourDigits || ''
           break
       }
 
@@ -190,7 +190,7 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
                     : '-'}
                 </td>
                 <td className="px-6 py-4">
-                  {expense.card?.holderName ||
+                  {expense.card?.customName ||
                     expense.card?.lastFourDigits ||
                     '-'}
                 </td>

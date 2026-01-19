@@ -4,6 +4,7 @@ import type {
   StatementStatusResponse,
   HasStatementsResponse,
 } from './types/bulk-upload'
+import type { Card, UpdateCardDto } from './types/card'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
@@ -98,8 +99,12 @@ export const statementsApi = {
 
 // Cards API
 export const cardsApi = {
-  getAll: async () => {
+  getAll: async (): Promise<Card[]> => {
     const { data } = await api.get('/cards')
+    return data
+  },
+  update: async (id: string, dto: UpdateCardDto): Promise<Card> => {
+    const { data } = await api.patch(`/cards/${id}`, dto)
     return data
   },
 }

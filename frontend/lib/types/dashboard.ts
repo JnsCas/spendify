@@ -7,7 +7,7 @@ export interface MonthlyData {
 
 export interface CardBreakdown {
   cardId: string | null
-  cardName: string | null
+  customName: string | null
   lastFourDigits: string | null
   totalArs: number
   totalUsd: number

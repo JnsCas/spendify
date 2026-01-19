@@ -47,7 +47,7 @@ describe('ParserService', () => {
           amount_usd: null,
           current_installment: null,
           total_installments: null,
-          card_identifier: '1234',
+          last_four_digits: '1234',
           purchase_date: '2024-01-10',
         },
       ],

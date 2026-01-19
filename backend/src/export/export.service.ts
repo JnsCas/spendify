@@ -20,7 +20,7 @@ export class ExportService {
       expense.amountUsd?.toString() ?? '',
       expense.currentInstallment?.toString() ?? '',
       expense.totalInstallments?.toString() ?? '',
-      expense.card?.holderName || expense.card?.lastFourDigits || '',
+      expense.card?.customName || expense.card?.lastFourDigits || '',
       expense.purchaseDate
         ? new Date(expense.purchaseDate).toISOString().split('T')[0]
         : '',

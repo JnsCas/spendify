@@ -50,21 +50,22 @@ interface ChartDataPoint {
 }
 
 export function CardBreakdownChart({ cardBreakdown, currency }: CardBreakdownChartProps) {
-  // Transform data for the chart - filter out unknown cards
+  // Transform data for the chart - filter out cards with no spending
   const chartData: ChartDataPoint[] = cardBreakdown
-    .map((card, index) => { 
-      const cardName = () => {
-        if (card.cardName === 'Unknown Card') {
-          return card.lastFourDigits || '---'
+    .map((card, index) => {
+      const getDisplayName = () => {
+        if (card.customName) {
+          return card.customName
         }
-        return card.cardName + ' ' + `(...${card.lastFourDigits})`
+        return card.lastFourDigits || 'Fee/Taxes'
       }
 
       return {
-      name: cardName(),
-      value: currency === 'ARS' ? card.totalArs : card.totalUsd,
-      color: COLORS[index % COLORS.length],
-    }})
+        name: getDisplayName(),
+        value: currency === 'ARS' ? card.totalArs : card.totalUsd,
+        color: COLORS[index % COLORS.length]
+      }
+    })
     .filter((d) => d.value > 0)
 
   if (chartData.length === 0) {

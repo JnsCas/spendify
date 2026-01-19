@@ -90,11 +90,10 @@ export class StatementProcessor {
   ): Promise<void> {
     let cardId: string | undefined;
 
-    // Find or create card if identifier provided
-    if (expense.card_identifier) {
-      const card = await this.cardsService.findOrCreateByIdentifier(
+    if (expense.last_four_digits) {
+      const card = await this.cardsService.findOrCreateByLastFourDigits(
         statement.userId,
-        expense.card_identifier,
+        expense.last_four_digits,
       );
       cardId = card.id;
     }

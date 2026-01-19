@@ -29,8 +29,14 @@ describe('BulkFileUpload Component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    // Reset the Zustand store between tests
-    useImportStore.getState().clearAll()
+    // Fully reset the Zustand store between tests
+    // clearAll() only removes completed/failed items, so we need to reset the entire state
+    useImportStore.setState({
+      items: [],
+      duplicates: [],
+      isUploading: false,
+      uploadError: null,
+    })
   })
 
   describe('Initial State', () => {

@@ -75,6 +75,12 @@ export default function DashboardLayout({
             >
               {isFirstTimeUser ? 'Start Here: Import' : 'Import'}
             </Link>
+            <Link
+              href="/dashboard/cards"
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            >
+              Cards
+            </Link>
             {isAdmin && (
               <Link
                 href="/dashboard/admin"

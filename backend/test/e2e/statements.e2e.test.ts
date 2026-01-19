@@ -70,10 +70,8 @@ describe('Statements (e2e)', () => {
     const cardRepo = dataSource.getRepository(Card);
     const card = cardRepo.create({
       userId,
-      cardName: 'Visa',
+      customName: 'Visa',
       lastFourDigits: '1234',
-      isExtension: false,
-      holderName: 'TEST USER',
       ...overrides,
     });
     return cardRepo.save(card);
@@ -248,11 +246,11 @@ describe('Statements (e2e)', () => {
 
     it('should return card breakdown', async () => {
       const card1 = await createCard({
-        cardName: 'Visa',
+        customName: 'Visa',
         lastFourDigits: '1234',
       });
       const card2 = await createCard({
-        cardName: 'Mastercard',
+        customName: 'Mastercard',
         lastFourDigits: '5678',
       });
 
@@ -281,14 +279,14 @@ describe('Statements (e2e)', () => {
       expect(response.body.cardBreakdown).toHaveLength(2);
 
       const visaBreakdown = response.body.cardBreakdown.find(
-        (c: { cardName: string }) => c.cardName === 'Visa',
+        (c: { customName: string }) => c.customName === 'Visa',
       );
       expect(visaBreakdown).toBeDefined();
       expect(visaBreakdown.totalArs).toBe(8000);
       expect(visaBreakdown.totalUsd).toBe(40);
 
       const mastercardBreakdown = response.body.cardBreakdown.find(
-        (c: { cardName: string }) => c.cardName === 'Mastercard',
+        (c: { customName: string }) => c.customName === 'Mastercard',
       );
       expect(mastercardBreakdown).toBeDefined();
       expect(mastercardBreakdown.totalArs).toBe(2000);
