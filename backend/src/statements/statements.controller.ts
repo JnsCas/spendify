@@ -195,6 +195,22 @@ export class StatementsController {
     };
   }
 
+  @Delete('by-month')
+  async deleteByMonth(
+    @CurrentUser() user: User,
+    @Query('year') yearParam: string,
+    @Query('month') monthParam: string,
+  ): Promise<{ deletedCount: number }> {
+    const year = parseInt(yearParam, 10);
+    const month = parseInt(monthParam, 10);
+
+    if (isNaN(year) || isNaN(month)) {
+      throw new BadRequestException('Invalid year or month');
+    }
+
+    return this.statementsService.deleteByMonth(user.id, year, month);
+  }
+
   @Get(':id')
   async findOne(
     @Param('id') id: string,

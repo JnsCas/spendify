@@ -1,33 +1,22 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
+import { DocumentIcon } from '@heroicons/react/24/outline'
+import type { MonthExpense } from '@/lib/types/expense'
 
-interface Expense {
-  id: string
-  description: string
-  amountArs: number | null
-  amountUsd: number | null
-  currentInstallment: number | null
-  totalInstallments: number | null
-  purchaseDate: string | null
-  card: {
-    id: string
-    customName: string | null
-    lastFourDigits: string | null
-  } | null
+interface MonthExpenseTableProps {
+  expenses: MonthExpense[]
 }
 
-interface ExpenseTableProps {
-  expenses: Expense[]
-}
-
-type SortField = 'description' | 'amountArs' | 'amountUsd' | 'card'
+type SortField = 'description' | 'amountArs' | 'amountUsd' | 'card' | 'source'
 type SortDirection = 'asc' | 'desc'
 
-export default function ExpenseTable({ expenses }: ExpenseTableProps) {
+export default function MonthExpenseTable({ expenses }: MonthExpenseTableProps) {
   const [sortField, setSortField] = useState<SortField>('description')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [filterCard, setFilterCard] = useState<string>('')
+  const [filterStatement, setFilterStatement] = useState<string>('')
   const [searchTerm, setSearchTerm] = useState('')
 
   const cards = useMemo(() => {
@@ -35,8 +24,8 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
     let hasNoCard = false
     expenses.forEach((e) => {
       if (e.card) {
-        const label = e.card.customName || e.card.lastFourDigits || e.card.id
-        uniqueCards.set(e.card.id, label)
+        const label = e.card.customName || e.card.lastFourDigits || e.card.id || 'Unknown'
+        uniqueCards.set(e.card.id || 'unknown', label)
       } else {
         hasNoCard = true
       }
@@ -46,6 +35,14 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
       cardEntries.push(['no-card', 'No Card (Taxes/Fees)'])
     }
     return cardEntries
+  }, [expenses])
+
+  const statements = useMemo(() => {
+    const uniqueStatements = new Map<string, string>()
+    expenses.forEach((e) => {
+      uniqueStatements.set(e.statement.id, e.statement.originalFilename)
+    })
+    return Array.from(uniqueStatements.entries())
   }, [expenses])
 
   const sortedExpenses = useMemo(() => {
@@ -67,10 +64,15 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
       }
     }
 
+    // Filter by statement
+    if (filterStatement) {
+      filtered = filtered.filter((e) => e.statement.id === filterStatement)
+    }
+
     // Sort
     filtered.sort((a, b) => {
-      let aVal: any
-      let bVal: any
+      let aVal: string | number
+      let bVal: string | number
 
       switch (sortField) {
         case 'description':
@@ -89,6 +91,10 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
           aVal = a.card?.customName || a.card?.lastFourDigits || ''
           bVal = b.card?.customName || b.card?.lastFourDigits || ''
           break
+        case 'source':
+          aVal = a.statement.originalFilename
+          bVal = b.statement.originalFilename
+          break
       }
 
       if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1
@@ -97,7 +103,7 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
     })
 
     return filtered
-  }, [expenses, sortField, sortDirection, filterCard, searchTerm])
+  }, [expenses, sortField, sortDirection, filterCard, filterStatement, searchTerm])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -116,18 +122,10 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <input
-          type="text"
-          placeholder="Search expenses..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="rounded-lg border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
-        />
-
-        {/* Card filter pills */}
+      <div className="space-y-3">
+        {/* Card filter pills - own row */}
         {cards.length > 0 && (
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
               onClick={() => setFilterCard('')}
               className={`rounded-full px-3 py-1 text-sm font-medium ring-1 transition-all ${
@@ -136,7 +134,7 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
                   : 'bg-gray-50 text-gray-600 ring-gray-200 hover:bg-gray-100'
               }`}
             >
-              All
+              All Cards
             </button>
             {cards.map(([id, label]) => (
               <button
@@ -153,6 +151,47 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
             ))}
           </div>
         )}
+
+        {/* Statement filter pills - own row, only show if multiple statements */}
+        {statements.length > 1 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              onClick={() => setFilterStatement('')}
+              className={`rounded-full px-3 py-1 text-sm font-medium ring-1 transition-all ${
+                filterStatement === ''
+                  ? 'bg-gray-700 text-white ring-gray-700/20'
+                  : 'bg-gray-50 text-gray-600 ring-gray-200 hover:bg-gray-100'
+              }`}
+            >
+              All Statements
+            </button>
+            {statements.map(([id, filename]) => (
+              <button
+                key={id}
+                onClick={() => setFilterStatement(id)}
+                className={`rounded-full px-3 py-1 text-sm font-medium ring-1 transition-all ${
+                  filterStatement === id
+                    ? 'bg-emerald-600 text-white ring-emerald-600/20'
+                    : 'bg-emerald-50 text-emerald-700 ring-emerald-100 hover:bg-emerald-100'
+                }`}
+                title={filename}
+              >
+                {filename}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Search input - own row */}
+        <div>
+          <input
+            type="text"
+            placeholder="Search expenses..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full max-w-sm rounded-lg border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+          />
+        </div>
       </div>
 
       {/* Table */}
@@ -187,6 +226,12 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
               >
                 Card <SortIcon field="card" />
               </th>
+              <th
+                className="cursor-pointer px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 transition-colors hover:bg-gray-100"
+                onClick={() => handleSort('source')}
+              >
+                Source <SortIcon field="source" />
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -218,6 +263,17 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
                   {expense.card?.customName ||
                     expense.card?.lastFourDigits ||
                     <span className="text-gray-300">-</span>}
+                </td>
+                <td className="px-4 py-3">
+                  <Link
+                    href={`/dashboard/statements/${expense.statement.id}`}
+                    className="inline-flex items-center gap-1.5 text-sm text-blue-600 transition-colors hover:text-blue-800 hover:underline"
+                  >
+                    <DocumentIcon className="h-4 w-4" />
+                    <span className="truncate max-w-[150px]">
+                      {expense.statement.originalFilename}
+                    </span>
+                  </Link>
                 </td>
               </tr>
             ))}

@@ -26,6 +26,7 @@ describe('StatementsService', () => {
       findOne: jest.fn(),
       findOneWithRelations: jest.fn(),
       remove: jest.fn(),
+      removeMany: jest.fn(),
       getAvailableMonths: jest.fn(),
       findAllByUserInDateRange: jest.fn(),
       getMonthlyAggregatesInDateRange: jest.fn(),
@@ -34,6 +35,7 @@ describe('StatementsService', () => {
       findByFileHash: jest.fn(),
       findPendingOrProcessing: jest.fn(),
       findLatestCompletedStatementMonth: jest.fn(),
+      findByUserAndMonth: jest.fn(),
     };
 
     const mockExpenseRepository = {
@@ -550,6 +552,44 @@ describe('StatementsService', () => {
 
       expect(result.totalArs).toBe(8000); // 5000 + 0 + 3000
       expect(result.totalUsd).toBe(150);  // 0 + 100 + 50
+    });
+  });
+
+  describe('deleteByMonth', () => {
+    it('should delete all statements for a specific month', async () => {
+      const mockStatements = [
+        createMockStatement({ id: 'stmt-1', userId: mockUserId }),
+        createMockStatement({ id: 'stmt-2', userId: mockUserId }),
+        createMockStatement({ id: 'stmt-3', userId: mockUserId }),
+      ];
+
+      statementRepository.findByUserAndMonth.mockResolvedValue(mockStatements);
+      statementRepository.removeMany.mockResolvedValue(undefined);
+
+      const result = await service.deleteByMonth(mockUserId, 2024, 10);
+
+      expect(statementRepository.findByUserAndMonth).toHaveBeenCalledWith(
+        mockUserId,
+        2024,
+        10
+      );
+      expect(statementRepository.removeMany).toHaveBeenCalledWith(mockStatements);
+      expect(result).toEqual({ deletedCount: 3 });
+    });
+
+    it('should return zero deleted count when no statements exist for the month', async () => {
+      statementRepository.findByUserAndMonth.mockResolvedValue([]);
+      statementRepository.removeMany.mockResolvedValue(undefined);
+
+      const result = await service.deleteByMonth(mockUserId, 2024, 1);
+
+      expect(statementRepository.findByUserAndMonth).toHaveBeenCalledWith(
+        mockUserId,
+        2024,
+        1
+      );
+      expect(statementRepository.removeMany).toHaveBeenCalledWith([]);
+      expect(result).toEqual({ deletedCount: 0 });
     });
   });
 });

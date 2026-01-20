@@ -48,48 +48,58 @@ export default function StatementSummary({
   }, [expenses])
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-sm text-gray-500 uppercase">Total ARS</h3>
-        <p className="text-2xl font-bold mt-2">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-4">
+        <h3 className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          Total ARS
+        </h3>
+        <p className="mt-1 text-xl font-semibold text-blue-600">
           {totalArs ? `$${Number(totalArs).toLocaleString()}` : '-'}
         </p>
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-sm text-gray-500 uppercase">Total USD</h3>
-        <p className="text-2xl font-bold mt-2">
+      <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-4">
+        <h3 className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          Total USD
+        </h3>
+        <p className="mt-1 text-xl font-semibold text-emerald-600">
           {totalUsd ? `US$${Number(totalUsd).toLocaleString()}` : '-'}
         </p>
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-sm text-gray-500 uppercase">Installments Subtotal</h3>
-        <p className="text-lg font-semibold mt-2">
+      <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-4">
+        <h3 className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          Installments
+        </h3>
+        <div className="mt-1">
           {installmentSubtotals.ars > 0 && (
-            <span className="block">
-              ARS: ${installmentSubtotals.ars.toLocaleString()}
-            </span>
+            <p className="text-sm font-medium text-blue-600">
+              ${installmentSubtotals.ars.toLocaleString()}
+            </p>
           )}
           {installmentSubtotals.usd > 0 && (
-            <span className="block">
-              USD: US${installmentSubtotals.usd.toLocaleString()}
-            </span>
+            <p className="text-sm font-medium text-emerald-600">
+              US${installmentSubtotals.usd.toLocaleString()}
+            </p>
           )}
-          {installmentSubtotals.count === 0 && '-'}
-        </p>
-        <p className="text-xs text-gray-500 mt-1">
-          {installmentSubtotals.count} installment purchases
+          {installmentSubtotals.count === 0 && (
+            <p className="text-sm text-gray-400">-</p>
+          )}
+        </div>
+        <p className="mt-1 text-xs text-gray-400">
+          {installmentSubtotals.count} purchases
         </p>
       </div>
 
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-sm text-gray-500 uppercase">Due Date</h3>
-        <p className="text-2xl font-bold mt-2">
+      <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-4">
+        <h3 className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          Due Date
+        </h3>
+        <p className="mt-1 text-xl font-semibold text-gray-900">
           {dueDate ? formatDateString(dueDate) : '-'}
         </p>
         {statementDate && (
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="mt-1 text-xs text-gray-400">
             Statement: {formatDateString(statementDate)}
           </p>
         )}

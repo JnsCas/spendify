@@ -3,6 +3,7 @@
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 import {
   EndMonth,
+  MonthlyData,
   MONTH_SHORT_NAMES,
   formatDateRangeLabel,
 } from '@/lib/types/dashboard'
@@ -12,6 +13,7 @@ interface MonthPaginatorProps {
   onEndMonthChange: (endMonth: EndMonth) => void
   totalArs?: number
   totalUsd?: number
+  monthlyData?: MonthlyData[]
 }
 
 export function MonthPaginator({
@@ -19,6 +21,7 @@ export function MonthPaginator({
   onEndMonthChange,
   totalArs = 0,
   totalUsd = 0,
+  monthlyData = [],
 }: MonthPaginatorProps) {
   const now = new Date()
   const currentEndMonth: EndMonth = {
@@ -67,6 +70,25 @@ export function MonthPaginator({
     maximumFractionDigits: 0,
   }).format(totalUsd)
 
+  // Calculate monthly average based on months with data
+  const monthsWithData = monthlyData.filter(
+    (m) => m.statementCount > 0
+  ).length
+  const avgArs = monthsWithData > 0 ? totalArs / monthsWithData : 0
+  const avgUsd = monthsWithData > 0 ? totalUsd / monthsWithData : 0
+
+  const formattedAvgArs = new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    maximumFractionDigits: 0,
+  }).format(avgArs)
+
+  const formattedAvgUsd = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(avgUsd)
+
   // Generate options for dropdown (last 5 years worth of months)
   const generateMonthOptions = (): EndMonth[] => {
     const options: EndMonth[] = []
@@ -83,7 +105,7 @@ export function MonthPaginator({
   const monthOptions = generateMonthOptions()
 
   return (
-    <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
+    <div className="rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 p-4 shadow-lg">
       <div className="flex items-center justify-between">
         {/* Left: Month navigation */}
         <div className="flex items-center gap-2">
@@ -92,8 +114,8 @@ export function MonthPaginator({
             disabled={!canGoPrev}
             className={`flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200 ${
               canGoPrev
-                ? 'bg-gray-100 text-gray-700 hover:bg-indigo-100 hover:text-indigo-600 active:scale-95'
-                : 'cursor-not-allowed bg-gray-50 text-gray-300'
+                ? 'bg-white/20 text-white hover:bg-white/30 active:scale-95'
+                : 'cursor-not-allowed bg-white/10 text-white/40'
             }`}
             aria-label="Previous month"
           >
@@ -107,18 +129,19 @@ export function MonthPaginator({
                 const [year, month] = e.target.value.split('-').map(Number)
                 onEndMonthChange({ year, month })
               }}
-              className="cursor-pointer appearance-none bg-transparent text-xl font-bold text-gray-900 focus:outline-none"
+              className="cursor-pointer appearance-none bg-transparent text-xl font-bold text-white focus:outline-none"
             >
               {monthOptions.map((opt) => (
                 <option
                   key={`${opt.year}-${opt.month}`}
                   value={`${opt.year}-${opt.month}`}
+                  className="text-gray-900"
                 >
                   {MONTH_SHORT_NAMES[opt.month - 1]} {opt.year}
                 </option>
               ))}
             </select>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-white/70">
               {formatDateRangeLabel(endMonth)}
             </span>
           </div>
@@ -128,8 +151,8 @@ export function MonthPaginator({
             disabled={!canGoNext}
             className={`flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200 ${
               canGoNext
-                ? 'bg-gray-100 text-gray-700 hover:bg-indigo-100 hover:text-indigo-600 active:scale-95'
-                : 'cursor-not-allowed bg-gray-50 text-gray-300'
+                ? 'bg-white/20 text-white hover:bg-white/30 active:scale-95'
+                : 'cursor-not-allowed bg-white/10 text-white/40'
             }`}
             aria-label="Next month"
           >
@@ -137,19 +160,40 @@ export function MonthPaginator({
           </button>
         </div>
 
-        {/* Right: 12-Month total */}
-        <div className="text-right">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-            12-Month Total
-          </p>
-          <p className="text-xl font-semibold text-gray-900">
-            {formattedArs}
-            {totalUsd > 0 && (
-              <span className="ml-2 text-base text-gray-500">
-                + {formattedUsd}
-              </span>
+        {/* Right: 12-Month total and average */}
+        <div className="flex items-center gap-6">
+          <div className="text-right">
+            <p className="text-xs font-medium uppercase tracking-wide text-white/70">
+              Monthly Average
+            </p>
+            <p className="text-xl font-semibold text-white">
+              {formattedAvgArs}
+              {avgUsd > 0 && (
+                <span className="ml-2 text-base text-emerald-200">
+                  + {formattedAvgUsd}
+                </span>
+              )}
+            </p>
+            {monthsWithData > 0 && (
+              <p className="text-xs text-white/50">
+                Based on {monthsWithData} month{monthsWithData !== 1 ? 's' : ''}
+              </p>
             )}
-          </p>
+          </div>
+          <div className="h-10 w-px bg-white/20" />
+          <div className="text-right">
+            <p className="text-xs font-medium uppercase tracking-wide text-white/70">
+              12-Month Total
+            </p>
+            <p className="text-xl font-semibold text-white">
+              {formattedArs}
+              {totalUsd > 0 && (
+                <span className="ml-2 text-base text-emerald-200">
+                  + {formattedUsd}
+                </span>
+              )}
+            </p>
+          </div>
         </div>
       </div>
     </div>

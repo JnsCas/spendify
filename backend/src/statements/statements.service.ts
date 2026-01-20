@@ -170,6 +170,20 @@ export class StatementsService {
     await this.statementRepository.remove(statement);
   }
 
+  async deleteByMonth(
+    userId: string,
+    year: number,
+    month: number,
+  ): Promise<{ deletedCount: number }> {
+    const statements = await this.statementRepository.findByUserAndMonth(
+      userId,
+      year,
+      month,
+    );
+    await this.statementRepository.removeMany(statements);
+    return { deletedCount: statements.length };
+  }
+
   async createBulk(
     userId: string,
     files: Express.Multer.File[],

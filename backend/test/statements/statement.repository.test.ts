@@ -339,4 +339,54 @@ describe('StatementRepository', () => {
       expect(result).toBeNull();
     });
   });
+
+  describe('findByUserAndMonth', () => {
+    it('should find statements by user, year and month', async () => {
+      const mockStatements = [
+        createMockStatement({ userId: mockUserId }),
+        createMockStatement({ userId: mockUserId }),
+      ];
+      const qb = createMockQueryBuilder(mockStatements);
+      typeOrmRepository.createQueryBuilder!.mockReturnValue(qb);
+
+      const result = await repository.findByUserAndMonth(mockUserId, 2024, 10);
+
+      expect(typeOrmRepository.createQueryBuilder).toHaveBeenCalledWith('statement');
+      expect(qb.where).toHaveBeenCalledWith('statement.userId = :userId', { userId: mockUserId });
+      expect(qb.andWhere).toHaveBeenCalledWith('EXTRACT(YEAR FROM statement.statementDate) = :year', { year: 2024 });
+      expect(qb.andWhere).toHaveBeenCalledWith('EXTRACT(MONTH FROM statement.statementDate) = :month', { month: 10 });
+      expect(qb.getMany).toHaveBeenCalled();
+      expect(result).toEqual(mockStatements);
+    });
+
+    it('should return empty array when no statements match', async () => {
+      const qb = createMockQueryBuilder([]);
+      typeOrmRepository.createQueryBuilder!.mockReturnValue(qb);
+
+      const result = await repository.findByUserAndMonth(mockUserId, 2024, 1);
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('removeMany', () => {
+    it('should remove multiple statements', async () => {
+      const mockStatements = [
+        createMockStatement({ userId: mockUserId }),
+        createMockStatement({ userId: mockUserId }),
+        createMockStatement({ userId: mockUserId }),
+      ];
+      typeOrmRepository.remove!.mockResolvedValue(mockStatements);
+
+      await repository.removeMany(mockStatements);
+
+      expect(typeOrmRepository.remove).toHaveBeenCalledWith(mockStatements);
+    });
+
+    it('should not call remove when given empty array', async () => {
+      await repository.removeMany([]);
+
+      expect(typeOrmRepository.remove).not.toHaveBeenCalled();
+    });
+  });
 });

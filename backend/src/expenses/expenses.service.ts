@@ -1,6 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Expense } from './expense.entity';
-import { ExpenseRepository, CreateExpenseData } from './expense.repository';
+import {
+  ExpenseRepository,
+  CreateExpenseData,
+  MonthExpense,
+} from './expense.repository';
 
 export interface CreateExpenseDto {
   statementId: string;
@@ -46,5 +50,13 @@ export class ExpensesService {
 
   async deleteByStatement(statementId: string): Promise<void> {
     return this.expenseRepository.deleteByStatement(statementId);
+  }
+
+  async findByUserAndMonth(
+    userId: string,
+    year: number,
+    month: number,
+  ): Promise<MonthExpense[]> {
+    return this.expenseRepository.findByUserAndMonth(userId, year, month);
   }
 }
