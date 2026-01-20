@@ -177,4 +177,28 @@ export class StatementRepository {
       order: { createdAt: 'DESC' },
     });
   }
+
+  async findLatestCompletedStatementMonth(
+    userId: string,
+  ): Promise<AvailableMonth | null> {
+    const result = await this.repository
+      .createQueryBuilder('statement')
+      .select([
+        'EXTRACT(YEAR FROM MAX(statement.statementDate)) as year',
+        'EXTRACT(MONTH FROM MAX(statement.statementDate)) as month',
+      ])
+      .where('statement.userId = :userId', { userId })
+      .andWhere('statement.status = :status', { status: 'completed' })
+      .andWhere('statement.statementDate IS NOT NULL')
+      .getRawOne();
+
+    if (!result?.year || !result?.month) {
+      return null;
+    }
+
+    return {
+      year: parseInt(result.year, 10),
+      month: parseInt(result.month, 10),
+    };
+  }
 }

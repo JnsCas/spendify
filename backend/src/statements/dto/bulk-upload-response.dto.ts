@@ -31,3 +31,22 @@ export class StatementStatusResponseDto {
 export class HasStatementsResponseDto {
   hasStatements: boolean;
 }
+
+export class CompletingInstallmentDto {
+  id: string;
+  description: string;
+  amountArs: number | null;
+  amountUsd: number | null;
+  currentInstallment: number;
+  totalInstallments: number;
+  cardId: string | null;
+  customName: string | null;
+  lastFourDigits: string | null;
+}
+
+export class CompletingInstallmentsResponseDto {
+  statementMonth: string;
+  installments: CompletingInstallmentDto[];
+  totalArs: number;
+  totalUsd: number;
+}

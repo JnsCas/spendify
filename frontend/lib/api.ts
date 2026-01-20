@@ -5,6 +5,7 @@ import type {
   HasStatementsResponse,
 } from './types/bulk-upload'
 import type { Card, UpdateCardDto } from './types/card'
+import type { CompletingInstallmentsResponse } from './types/dashboard'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
@@ -96,6 +97,15 @@ export const statementsApi = {
   },
   getProcessing: async () => {
     const { data } = await api.get('/statements/processing')
+    return data
+  },
+  getCompletingInstallments: async (
+    year: number,
+    month: number
+  ): Promise<CompletingInstallmentsResponse> => {
+    const { data } = await api.get(
+      `/statements/completing-installments?year=${year}&month=${month}`
+    )
     return data
   },
 }

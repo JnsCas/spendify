@@ -40,3 +40,5 @@ prompts/*
 .playwright-mcp/*
 
 *.prod.yml
+
+frontend/tsconfig.tsbuildinfo

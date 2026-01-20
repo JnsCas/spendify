@@ -8,7 +8,11 @@ import {
   AvailableMonth,
   MonthlyData,
 } from './statement.repository';
-import { ExpenseRepository, CardBreakdown } from '../expenses/expense.repository';
+import {
+  ExpenseRepository,
+  CardBreakdown,
+  CompletingInstallment,
+} from '../expenses/expense.repository';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -33,6 +37,12 @@ export interface RangeSummaryResponse {
     monthlyData: MonthlyData[];
   };
   cardBreakdown: CardBreakdown[];
+}
+
+export interface CompletingInstallmentsResult {
+  installments: CompletingInstallment[];
+  totalArs: number;
+  totalUsd: number;
 }
 
 @Injectable()
@@ -223,6 +233,36 @@ export class StatementsService {
 
   async hasAnyByUser(userId: string): Promise<boolean> {
     return this.statementRepository.hasAnyByUser(userId);
+  }
+
+  async getLatestCompletedStatementMonth(
+    userId: string,
+  ): Promise<AvailableMonth | null> {
+    return this.statementRepository.findLatestCompletedStatementMonth(userId);
+  }
+
+  async getCompletingInstallments(
+    userId: string,
+    year: number,
+    month: number,
+  ): Promise<CompletingInstallmentsResult> {
+    const installments =
+      await this.expenseRepository.findCompletingInstallmentsByStatementMonth(
+        userId,
+        year,
+        month,
+      );
+
+    const totalArs = installments.reduce(
+      (sum, i) => sum + (i.amountArs || 0),
+      0,
+    );
+    const totalUsd = installments.reduce(
+      (sum, i) => sum + (i.amountUsd || 0),
+      0,
+    );
+
+    return { installments, totalArs, totalUsd };
   }
 
   private calculateFileHash(buffer: Buffer): string {

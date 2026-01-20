@@ -33,10 +33,12 @@ describe('StatementsService', () => {
       hasAnyByUser: jest.fn(),
       findByFileHash: jest.fn(),
       findPendingOrProcessing: jest.fn(),
+      findLatestCompletedStatementMonth: jest.fn(),
     };
 
     const mockExpenseRepository = {
       getCardBreakdownByUserInDateRange: jest.fn(),
+      findCompletingInstallmentsByStatementMonth: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -433,6 +435,121 @@ describe('StatementsService', () => {
 
       expect(statementRepository.findPendingOrProcessing).toHaveBeenCalledWith(mockUserId);
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('getLatestCompletedStatementMonth', () => {
+    it('should return the latest completed statement month', async () => {
+      const mockMonth = { year: 2024, month: 12 };
+      statementRepository.findLatestCompletedStatementMonth.mockResolvedValue(mockMonth);
+
+      const result = await service.getLatestCompletedStatementMonth(mockUserId);
+
+      expect(statementRepository.findLatestCompletedStatementMonth).toHaveBeenCalledWith(mockUserId);
+      expect(result).toEqual(mockMonth);
+    });
+
+    it('should return null when no completed statements exist', async () => {
+      statementRepository.findLatestCompletedStatementMonth.mockResolvedValue(null);
+
+      const result = await service.getLatestCompletedStatementMonth(mockUserId);
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('getCompletingInstallments', () => {
+    it('should return completing installments with totals for the specified month', async () => {
+      const mockInstallments = [
+        {
+          id: 'expense-1',
+          description: 'Netflix',
+          amountArs: 5000,
+          amountUsd: null,
+          currentInstallment: 3,
+          totalInstallments: 3,
+          cardId: 'card-1',
+          customName: 'Visa Gold',
+          lastFourDigits: '1234',
+        },
+        {
+          id: 'expense-2',
+          description: 'Spotify',
+          amountArs: 2000,
+          amountUsd: null,
+          currentInstallment: 6,
+          totalInstallments: 6,
+          cardId: 'card-2',
+          customName: 'AMEX',
+          lastFourDigits: '5678',
+        },
+      ];
+
+      expenseRepository.findCompletingInstallmentsByStatementMonth.mockResolvedValue(mockInstallments);
+
+      const result = await service.getCompletingInstallments(mockUserId, 2024, 12);
+
+      expect(expenseRepository.findCompletingInstallmentsByStatementMonth).toHaveBeenCalledWith(
+        mockUserId,
+        2024,
+        12
+      );
+      expect(result.installments).toEqual(mockInstallments);
+      expect(result.installments).toHaveLength(2);
+      expect(result.totalArs).toBe(7000);
+      expect(result.totalUsd).toBe(0);
+    });
+
+    it('should return empty installments with zero totals when no completing installments exist', async () => {
+      expenseRepository.findCompletingInstallmentsByStatementMonth.mockResolvedValue([]);
+
+      const result = await service.getCompletingInstallments(mockUserId, 2024, 12);
+
+      expect(result).toEqual({ installments: [], totalArs: 0, totalUsd: 0 });
+    });
+
+    it('should calculate totals correctly with mixed currencies', async () => {
+      const mockInstallments = [
+        {
+          id: 'expense-1',
+          description: 'ARS Purchase',
+          amountArs: 5000,
+          amountUsd: null,
+          currentInstallment: 3,
+          totalInstallments: 3,
+          cardId: 'card-1',
+          customName: 'Visa',
+          lastFourDigits: '1234',
+        },
+        {
+          id: 'expense-2',
+          description: 'USD Purchase',
+          amountArs: null,
+          amountUsd: 100,
+          currentInstallment: 6,
+          totalInstallments: 6,
+          cardId: 'card-2',
+          customName: 'AMEX',
+          lastFourDigits: '5678',
+        },
+        {
+          id: 'expense-3',
+          description: 'Both Currencies',
+          amountArs: 3000,
+          amountUsd: 50,
+          currentInstallment: 2,
+          totalInstallments: 2,
+          cardId: 'card-1',
+          customName: 'Visa',
+          lastFourDigits: '1234',
+        },
+      ];
+      expenseRepository.findCompletingInstallmentsByStatementMonth.mockResolvedValue(mockInstallments);
+
+      const result = await service.getCompletingInstallments(mockUserId, 2024, 12);
+
+      expect(result.totalArs).toBe(8000); // 5000 + 0 + 3000
+      expect(result.totalUsd).toBe(150);  // 0 + 100 + 50
     });
   });
 });

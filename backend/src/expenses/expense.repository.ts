@@ -22,6 +22,18 @@ export interface CardBreakdown {
   totalUsd: number;
 }
 
+export interface CompletingInstallment {
+  id: string;
+  description: string;
+  amountArs: number | null;
+  amountUsd: number | null;
+  currentInstallment: number;
+  totalInstallments: number;
+  cardId: string | null;
+  customName: string | null;
+  lastFourDigits: string | null;
+}
+
 @Injectable()
 export class ExpenseRepository {
   constructor(
@@ -93,6 +105,48 @@ export class ExpenseRepository {
       lastFourDigits: r.lastFourDigits,
       totalArs: parseFloat(r.totalArs) || 0,
       totalUsd: parseFloat(r.totalUsd) || 0,
+    }));
+  }
+
+  async findCompletingInstallmentsByStatementMonth(
+    userId: string,
+    year: number,
+    month: number,
+  ): Promise<CompletingInstallment[]> {
+    const result = await this.repository
+      .createQueryBuilder('e')
+      .leftJoin('e.statement', 's')
+      .leftJoin('e.card', 'c')
+      .select([
+        'e.id as "id"',
+        'e.description as "description"',
+        'e.amountArs as "amountArs"',
+        'e.amountUsd as "amountUsd"',
+        'e.currentInstallment as "currentInstallment"',
+        'e.totalInstallments as "totalInstallments"',
+        'e.cardId as "cardId"',
+        'c.customName as "customName"',
+        'c.lastFourDigits as "lastFourDigits"',
+      ])
+      .where('s.userId = :userId', { userId })
+      .andWhere('s.status = :status', { status: 'completed' })
+      .andWhere('EXTRACT(YEAR FROM s.statementDate) = :year', { year })
+      .andWhere('EXTRACT(MONTH FROM s.statementDate) = :month', { month })
+      .andWhere('e.currentInstallment = e.totalInstallments')
+      .andWhere('e.totalInstallments > 1')
+      .orderBy('e.amountArs', 'DESC', 'NULLS LAST')
+      .getRawMany();
+
+    return result.map((r) => ({
+      id: r.id,
+      description: r.description,
+      amountArs: r.amountArs ? parseFloat(r.amountArs) : null,
+      amountUsd: r.amountUsd ? parseFloat(r.amountUsd) : null,
+      currentInstallment: parseInt(r.currentInstallment, 10),
+      totalInstallments: parseInt(r.totalInstallments, 10),
+      cardId: r.cardId || null,
+      customName: r.customName || null,
+      lastFourDigits: r.lastFourDigits || null,
     }));
   }
 }
