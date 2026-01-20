@@ -1,7 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { DocumentIcon, CalendarDaysIcon } from '@heroicons/react/24/outline'
+import { DocumentIcon } from '@heroicons/react/24/outline'
 import { MONTH_NAMES, Statement } from '@/lib/types/dashboard'
 
 interface MonthCardProps {
@@ -44,8 +43,6 @@ export function MonthCard({
   isHighestSpending = false,
   isLowestSpending = false,
 }: MonthCardProps) {
-  const [expanded, setExpanded] = useState(true)
-
   const monthName = MONTH_NAMES[month - 1]
   const hasStatements = statementCount > 0
 
@@ -87,10 +84,9 @@ export function MonthCard({
             {hasStatements ? (
               <button
                 onClick={() => onMonthClick(year, month)}
-                className="flex items-center gap-1.5 rounded-md px-1.5 py-0.5 -ml-1.5 hover:bg-black/5 transition-colors"
+                className="rounded-md px-1.5 py-0.5 -ml-1.5 hover:bg-black/5 transition-colors"
                 title="View all expenses for this month"
               >
-                <CalendarDaysIcon className="h-4 w-4 text-blue-600" />
                 <h3 className="text-sm font-semibold text-gray-900">
                   {monthName}
                   <span className="ml-1 font-normal text-gray-500">
@@ -117,16 +113,9 @@ export function MonthCard({
               </span>
             )}
           </div>
-          <button
-            onClick={() => hasStatements && setExpanded(!expanded)}
-            className={`text-xs text-gray-500 ${hasStatements ? 'cursor-pointer hover:text-gray-700' : ''}`}
-            disabled={!hasStatements}
-          >
+          <span className="text-xs text-gray-400">
             {statementCount}
-            {hasStatements && (
-              <span className="ml-1">{expanded ? '▲' : '▼'}</span>
-            )}
-          </button>
+          </span>
         </div>
       </div>
 
@@ -151,8 +140,8 @@ export function MonthCard({
               )}
             </div>
 
-            {/* Expanded statement list */}
-            {expanded && statements.length > 0 && (
+            {/* Statement list */}
+            {statements.length > 0 && (
               <div className="mt-3 space-y-1 border-t border-gray-100 pt-2">
                 {statements.map((statement) => (
                   <button

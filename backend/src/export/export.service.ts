@@ -1,8 +1,81 @@
 import { Injectable } from '@nestjs/common';
 import { Statement } from '../statements/statement.entity';
+import { MonthExpense } from '../expenses/expense.repository';
+
+export interface MonthExportData {
+  year: number;
+  month: number;
+  totalArs: number;
+  totalUsd: number;
+  expenses: MonthExpense[];
+}
 
 @Injectable()
 export class ExportService {
+  generateMonthCsv(data: MonthExportData): string {
+    const headers = [
+      'Description',
+      'Amount (ARS)',
+      'Amount (USD)',
+      'Current Installment',
+      'Total Installments',
+      'Card',
+      'Statement',
+    ];
+
+    const rows = data.expenses.map((expense) => [
+      this.escapeCsvField(expense.description),
+      expense.amountArs?.toString() ?? '',
+      expense.amountUsd?.toString() ?? '',
+      expense.currentInstallment?.toString() ?? '',
+      expense.totalInstallments?.toString() ?? '',
+      expense.cardCustomName || expense.cardLastFourDigits || '',
+      expense.statementFilename,
+    ]);
+
+    // Add summary rows
+    rows.push([]); // Empty row
+    rows.push(['SUMMARY', '', '', '', '', '', '']);
+    rows.push(['Total ARS', data.totalArs.toString(), '', '', '', '', '']);
+    rows.push(['Total USD', '', data.totalUsd.toString(), '', '', '', '']);
+
+    // Calculate installment subtotal
+    const installmentSubtotalArs = data.expenses
+      .filter((e) => e.totalInstallments && e.totalInstallments > 1)
+      .reduce((sum, e) => sum + (Number(e.amountArs) || 0), 0);
+
+    const installmentSubtotalUsd = data.expenses
+      .filter((e) => e.totalInstallments && e.totalInstallments > 1)
+      .reduce((sum, e) => sum + (Number(e.amountUsd) || 0), 0);
+
+    rows.push([
+      'Installments Subtotal ARS',
+      installmentSubtotalArs.toFixed(2),
+      '',
+      '',
+      '',
+      '',
+      '',
+    ]);
+    rows.push([
+      'Installments Subtotal USD',
+      '',
+      installmentSubtotalUsd.toFixed(2),
+      '',
+      '',
+      '',
+      '',
+    ]);
+
+    // Build CSV string
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) => row.join(',')),
+    ].join('\n');
+
+    return csvContent;
+  }
+
   generateCsv(statement: Statement): string {
     const headers = [
       'Description',

@@ -117,6 +117,17 @@ export const expensesApi = {
     const { data } = await api.get(`/expenses/by-month?year=${year}&month=${month}`)
     return data
   },
+  exportCsvByMonth: (year: number, month: number) => {
+    return `${API_URL}/api/expenses/export/by-month?year=${year}&month=${month}`
+  },
+}
+
+// Statements by month API
+export const statementsByMonthApi = {
+  deleteByMonth: async (year: number, month: number): Promise<{ deletedCount: number }> => {
+    const { data } = await api.delete(`/statements/by-month?year=${year}&month=${month}`)
+    return data
+  },
 }
 
 // Cards API
