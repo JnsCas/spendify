@@ -3,6 +3,7 @@
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 import {
   EndMonth,
+  MonthlyData,
   MONTH_SHORT_NAMES,
   formatDateRangeLabel,
 } from '@/lib/types/dashboard'
@@ -12,6 +13,7 @@ interface MonthPaginatorProps {
   onEndMonthChange: (endMonth: EndMonth) => void
   totalArs?: number
   totalUsd?: number
+  monthlyData?: MonthlyData[]
 }
 
 export function MonthPaginator({
@@ -19,6 +21,7 @@ export function MonthPaginator({
   onEndMonthChange,
   totalArs = 0,
   totalUsd = 0,
+  monthlyData = [],
 }: MonthPaginatorProps) {
   const now = new Date()
   const currentEndMonth: EndMonth = {
@@ -66,6 +69,25 @@ export function MonthPaginator({
     currency: 'USD',
     maximumFractionDigits: 0,
   }).format(totalUsd)
+
+  // Calculate monthly average based on months with data
+  const monthsWithData = monthlyData.filter(
+    (m) => m.statementCount > 0
+  ).length
+  const avgArs = monthsWithData > 0 ? totalArs / monthsWithData : 0
+  const avgUsd = monthsWithData > 0 ? totalUsd / monthsWithData : 0
+
+  const formattedAvgArs = new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    maximumFractionDigits: 0,
+  }).format(avgArs)
+
+  const formattedAvgUsd = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(avgUsd)
 
   // Generate options for dropdown (last 5 years worth of months)
   const generateMonthOptions = (): EndMonth[] => {
@@ -137,19 +159,40 @@ export function MonthPaginator({
           </button>
         </div>
 
-        {/* Right: 12-Month total */}
-        <div className="text-right">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-            12-Month Total
-          </p>
-          <p className="text-xl font-semibold text-gray-900">
-            {formattedArs}
-            {totalUsd > 0 && (
-              <span className="ml-2 text-base text-gray-500">
-                + {formattedUsd}
-              </span>
+        {/* Right: 12-Month total and average */}
+        <div className="flex items-center gap-6">
+          <div className="text-right">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              Monthly Average
+            </p>
+            <p className="text-xl font-semibold text-gray-900">
+              {formattedAvgArs}
+              {avgUsd > 0 && (
+                <span className="ml-2 text-base text-gray-500">
+                  + {formattedAvgUsd}
+                </span>
+              )}
+            </p>
+            {monthsWithData > 0 && (
+              <p className="text-xs text-gray-400">
+                Based on {monthsWithData} month{monthsWithData !== 1 ? 's' : ''}
+              </p>
             )}
-          </p>
+          </div>
+          <div className="h-10 w-px bg-gray-200" />
+          <div className="text-right">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              12-Month Total
+            </p>
+            <p className="text-xl font-semibold text-gray-900">
+              {formattedArs}
+              {totalUsd > 0 && (
+                <span className="ml-2 text-base text-gray-500">
+                  + {formattedUsd}
+                </span>
+              )}
+            </p>
+          </div>
         </div>
       </div>
     </div>

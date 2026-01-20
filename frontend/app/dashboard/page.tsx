@@ -174,6 +174,7 @@ export default function DashboardPage() {
         onEndMonthChange={handleEndMonthChange}
         totalArs={totalArs}
         totalUsd={totalUsd}
+        monthlyData={summary?.rangeSummary.monthlyData || []}
       />
 
       {/* Charts Section */}
