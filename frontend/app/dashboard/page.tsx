@@ -150,31 +150,34 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Processing Banner - shows when statements are being processed */}
-      {processingCount > 0 && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <CircularProgress
-              current={processingCount}
-              total={processingCount}
-              size={24}
-              strokeWidth={3}
-            />
-            <span className="text-sm font-medium text-blue-700">
-              Processing {processingCount} file
-              {processingCount > 1 ? 's' : ''}...
-            </span>
+      {/* Sticky Month Navigation */}
+      <div className="sticky top-0 z-20 -mx-4 bg-gray-50 px-4 pb-4 pt-0">
+        {/* Processing Banner - shows when statements are being processed */}
+        {processingCount > 0 && (
+          <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <CircularProgress
+                current={processingCount}
+                total={processingCount}
+                size={24}
+                strokeWidth={3}
+              />
+              <span className="text-sm font-medium text-blue-700">
+                Processing {processingCount} file
+                {processingCount > 1 ? 's' : ''}...
+              </span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Month Navigation with Total */}
-      <MonthPaginator
-        endMonth={endMonth}
-        onEndMonthChange={handleEndMonthChange}
-        totalArs={totalArs}
-        totalUsd={totalUsd}
-      />
+        {/* Month Navigation with Total */}
+        <MonthPaginator
+          endMonth={endMonth}
+          onEndMonthChange={handleEndMonthChange}
+          totalArs={totalArs}
+          totalUsd={totalUsd}
+        />
+      </div>
 
       {/* Charts Section */}
       <DashboardCharts
@@ -190,17 +193,21 @@ export default function DashboardPage() {
       />
 
       {/* Monthly Grid */}
-      <div>
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">
-          Monthly Statements
-        </h2>
-        <MonthlyGrid
-          endMonth={endMonth}
-          monthlyData={summary?.rangeSummary.monthlyData || []}
-          statements={statements}
-          onStatementClick={handleStatementClick}
-          loading={loading}
-        />
+      <div className="rounded-lg border border-gray-200 bg-white">
+        <div className="border-b border-gray-100 px-4 py-3">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Monthly Statements
+          </h2>
+        </div>
+        <div className="p-4">
+          <MonthlyGrid
+            endMonth={endMonth}
+            monthlyData={summary?.rangeSummary.monthlyData || []}
+            statements={statements}
+            onStatementClick={handleStatementClick}
+            loading={loading}
+          />
+        </div>
       </div>
     </div>
   )
