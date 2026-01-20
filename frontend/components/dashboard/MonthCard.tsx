@@ -1,6 +1,6 @@
 'use client'
 
-import { DocumentIcon } from '@heroicons/react/24/outline'
+import { CalendarIcon, DocumentIcon } from '@heroicons/react/24/outline'
 import { MONTH_NAMES, Statement } from '@/lib/types/dashboard'
 
 interface MonthCardProps {
@@ -81,6 +81,7 @@ export function MonthCard({
       <div className={`border-b px-3 py-2.5 ${getHeaderClasses()}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
+            <CalendarIcon className="h-4 w-4 text-gray-400" />
             {hasStatements ? (
               <button
                 onClick={() => onMonthClick(year, month)}
