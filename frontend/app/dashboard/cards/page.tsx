@@ -66,102 +66,121 @@ export default function CardsPage() {
   }
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">Cards</h1>
-        <p className="text-gray-600 mt-1">
-          Manage your card display names. These names appear in your dashboard charts.
-        </p>
-      </div>
-
+    <div className="space-y-4">
       {error && (
-        <div className="p-3 bg-red-100 text-red-700 rounded-lg mb-4">{error}</div>
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
       )}
 
-      {loading ? (
-        <div className="text-center py-8">Loading...</div>
-      ) : cards.length === 0 ? (
-        <div className="text-center py-8 text-gray-600">
-          No cards yet. Cards are automatically created when you import statements.
+      <div className="rounded-lg border border-gray-200 bg-white">
+        {/* Section Header */}
+        <div className="border-b border-gray-100 px-4 py-3">
+          <h1 className="text-lg font-semibold text-gray-900">Cards</h1>
+          <p className="text-sm text-gray-500">
+            Customize card names for your dashboard charts
+          </p>
         </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last 4 Digits
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Custom Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {cards.map((card) => (
-                <tr key={card.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {card.lastFourDigits ? (
-                      <code className="font-mono bg-gray-100 px-2 py-1 rounded">
-                        {card.lastFourDigits}
-                      </code>
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {editingId === card.id ? (
-                      <input
-                        type="text"
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(e, card.id)}
-                        className="w-full px-2 py-1 border border-blue-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Enter custom name"
-                        autoFocus
-                      />
-                    ) : (
-                      <span className="font-medium text-gray-900">
-                        {getDisplayName(card)}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {editingId === card.id ? (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleSave(card.id)}
-                          disabled={saving}
-                          className="text-green-600 hover:text-green-800 disabled:opacity-50"
-                        >
-                          {saving ? 'Saving...' : 'Save'}
-                        </button>
-                        <button
-                          onClick={handleCancel}
-                          disabled={saving}
-                          className="text-gray-600 hover:text-gray-800 disabled:opacity-50"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => handleEdit(card)}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        Edit
-                      </button>
-                    )}
-                  </td>
-                </tr>
+
+        {/* Content */}
+        <div className="p-4">
+          {loading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }, (_, i) => (
+                <div
+                  key={i}
+                  className="h-14 animate-pulse rounded-lg border border-gray-100 bg-gray-50"
+                />
               ))}
-            </tbody>
-          </table>
+            </div>
+          ) : cards.length === 0 ? (
+            <div className="flex h-[200px] flex-col items-center justify-center rounded-lg border border-gray-100 bg-gray-50">
+              <div className="mb-2 rounded-full bg-gray-100 p-3">
+                <svg className="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+              </div>
+              <p className="text-sm text-gray-500">No cards yet</p>
+              <p className="text-xs text-gray-400">Cards appear after importing statements</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {cards.map((card) => (
+                <div
+                  key={card.id}
+                  className="rounded-lg border border-gray-100 bg-gray-50/50 p-3 transition-colors hover:bg-gray-50"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      {/* Card Icon */}
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white ring-1 ring-gray-200">
+                        <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                      </div>
+
+                      {/* Card Info */}
+                      <div>
+                        {editingId === card.id ? (
+                          <input
+                            type="text"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onKeyDown={(e) => handleKeyDown(e, card.id)}
+                            className="w-48 rounded-md border border-blue-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="Enter custom name"
+                            autoFocus
+                          />
+                        ) : (
+                          <p className="font-medium text-gray-900">
+                            {card.customName || (
+                              <span className="text-gray-400">No custom name</span>
+                            )}
+                          </p>
+                        )}
+                        {card.lastFourDigits && (
+                          <p className="text-xs text-gray-500">
+                            <span className="font-mono">****{card.lastFourDigits}</span>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                      {editingId === card.id ? (
+                        <>
+                          <button
+                            onClick={() => handleSave(card.id)}
+                            disabled={saving}
+                            className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+                          >
+                            {saving ? 'Saving...' : 'Save'}
+                          </button>
+                          <button
+                            onClick={handleCancel}
+                            disabled={saving}
+                            className="rounded-md px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-200 disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => handleEdit(card)}
+                          className="rounded-md px-3 py-1.5 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50"
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }

@@ -101,125 +101,128 @@ export default function AdminPage() {
 
   if (!isAdmin) {
     return (
-      <div className="text-center py-8">
-        <p className="text-gray-600">Checking permissions...</p>
+      <div className="flex h-[200px] items-center justify-center rounded-lg border border-gray-200 bg-white">
+        <p className="text-sm text-gray-500">Checking permissions...</p>
       </div>
     )
   }
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold">Invite Codes</h1>
-        <button
-          onClick={handleGenerate}
-          disabled={generating}
-          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition"
-        >
-          {generating ? 'Generating...' : 'Generate New Code'}
-        </button>
-      </div>
-
+    <div className="space-y-4">
       {error && (
-        <div className="p-3 bg-red-100 text-red-700 rounded-lg mb-4">{error}</div>
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
       )}
 
-      {loading ? (
-        <div className="text-center py-8">Loading...</div>
-      ) : codes.length === 0 ? (
-        <div className="text-center py-8 text-gray-600">
-          No invite codes yet. Generate one to get started.
+      <div className="rounded-lg border border-gray-200 bg-white">
+        {/* Section Header */}
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+          <div>
+            <h1 className="text-lg font-semibold text-gray-900">Invite Codes</h1>
+            <p className="text-sm text-gray-500">Manage access codes for new users</p>
+          </div>
+          <button
+            onClick={handleGenerate}
+            disabled={generating}
+            className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
+          >
+            {generating ? 'Generating...' : 'Generate Code'}
+          </button>
         </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Code
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Used By
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Created
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {codes.map((code) => (
-                <tr key={code.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <code className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
-                        {code.code}
-                      </code>
-                      <button
-                        onClick={() => handleCopy(code.code, code.id)}
-                        className="text-gray-400 hover:text-gray-600"
-                        title="Copy to clipboard"
-                      >
-                        {copiedId === code.id ? (
-                          <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {code.status === 'available' ? (
-                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                        Available
-                      </span>
-                    ) : (
-                      <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
-                        Used
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {code.usedBy ? (
-                      <div>
-                        <div className="font-medium text-gray-900">{code.usedBy.name}</div>
-                        <div className="text-gray-500">{code.usedBy.email}</div>
-                        {code.usedAt && (
-                          <div className="text-xs text-gray-400">{formatDate(code.usedAt)}</div>
-                        )}
-                      </div>
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(code.createdAt)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {code.status === 'available' && (
-                      <button
-                        onClick={() => handleDelete(code.id)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </td>
-                </tr>
+
+        {/* Content */}
+        <div className="p-4">
+          {loading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }, (_, i) => (
+                <div
+                  key={i}
+                  className="h-16 animate-pulse rounded-lg border border-gray-100 bg-gray-50"
+                />
               ))}
-            </tbody>
-          </table>
+            </div>
+          ) : codes.length === 0 ? (
+            <div className="flex h-[200px] flex-col items-center justify-center rounded-lg border border-gray-100 bg-gray-50">
+              <p className="text-sm text-gray-500">No invite codes yet</p>
+              <p className="text-xs text-gray-400">Generate one to get started</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {codes.map((code) => (
+                <div
+                  key={code.id}
+                  className={`rounded-lg border p-3 transition-colors ${
+                    code.status === 'available'
+                      ? 'border-emerald-100 bg-emerald-50/30'
+                      : 'border-gray-100 bg-gray-50/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {/* Code */}
+                      <div className="flex items-center gap-2">
+                        <code className="rounded bg-white px-2 py-1 font-mono text-sm text-gray-900 ring-1 ring-gray-200">
+                          {code.code}
+                        </code>
+                        <button
+                          onClick={() => handleCopy(code.code, code.id)}
+                          className="rounded p-1 text-gray-400 transition-colors hover:bg-white hover:text-gray-600"
+                          title="Copy to clipboard"
+                        >
+                          {copiedId === code.id ? (
+                            <svg className="h-4 w-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : (
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Status */}
+                      {code.status === 'available' ? (
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                          Available
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                          Used
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Right side info */}
+                    <div className="flex items-center gap-4">
+                      {code.usedBy ? (
+                        <div className="text-right">
+                          <p className="text-sm font-medium text-gray-900">{code.usedBy.name}</p>
+                          <p className="text-xs text-gray-500">{code.usedBy.email}</p>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400">
+                          Created {formatDate(code.createdAt)}
+                        </span>
+                      )}
+
+                      {code.status === 'available' && (
+                        <button
+                          onClick={() => handleDelete(code.id)}
+                          className="rounded px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }
