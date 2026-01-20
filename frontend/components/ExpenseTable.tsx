@@ -116,7 +116,7 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <input
           type="text"
           placeholder="Search expenses..."
@@ -124,18 +124,35 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="rounded-lg border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
         />
-        <select
-          value={filterCard}
-          onChange={(e) => setFilterCard(e.target.value)}
-          className="rounded-lg border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
-        >
-          <option value="">All Cards</option>
-          {cards.map(([id, label]) => (
-            <option key={id} value={id}>
-              {label}
-            </option>
-          ))}
-        </select>
+
+        {/* Card filter pills */}
+        {cards.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setFilterCard('')}
+              className={`rounded-full px-3 py-1 text-sm font-medium ring-1 transition-all ${
+                filterCard === ''
+                  ? 'bg-gray-700 text-white ring-gray-700/20'
+                  : 'bg-gray-50 text-gray-600 ring-gray-200 hover:bg-gray-100'
+              }`}
+            >
+              All
+            </button>
+            {cards.map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setFilterCard(id)}
+                className={`rounded-full px-3 py-1 text-sm font-medium ring-1 transition-all ${
+                  filterCard === id
+                    ? 'bg-blue-600 text-white ring-blue-600/20'
+                    : 'bg-blue-50 text-blue-700 ring-blue-100 hover:bg-blue-100'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Table */}
