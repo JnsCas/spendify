@@ -6,6 +6,7 @@ import type {
 } from './types/bulk-upload'
 import type { Card, UpdateCardDto } from './types/card'
 import type { CompletingInstallmentsResponse } from './types/dashboard'
+import type { MonthExpensesResponse } from './types/expense'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
@@ -106,6 +107,14 @@ export const statementsApi = {
     const { data } = await api.get(
       `/statements/completing-installments?year=${year}&month=${month}`
     )
+    return data
+  },
+}
+
+// Expenses API
+export const expensesApi = {
+  getByMonth: async (year: number, month: number): Promise<MonthExpensesResponse> => {
+    const { data } = await api.get(`/expenses/by-month?year=${year}&month=${month}`)
     return data
   },
 }

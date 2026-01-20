@@ -105,6 +105,10 @@ export default function DashboardPage() {
     router.push(`/dashboard/statements/${id}`)
   }
 
+  const handleMonthClick = (year: number, month: number) => {
+    router.push(`/dashboard/month/${year}/${month}`)
+  }
+
   // Polling effect - polls when there are processing statements
   useEffect(() => {
     const processingIds = processingStatements.map((s) => s.id)
@@ -206,6 +210,7 @@ export default function DashboardPage() {
             monthlyData={summary?.rangeSummary.monthlyData || []}
             statements={statements}
             onStatementClick={handleStatementClick}
+            onMonthClick={handleMonthClick}
             loading={loading}
           />
         </div>
