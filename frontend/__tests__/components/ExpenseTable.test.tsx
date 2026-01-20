@@ -120,7 +120,7 @@ describe('ExpenseTable Component', () => {
       render(<ExpenseTable expenses={mockExpenses} />)
 
       const headers = screen.getAllByRole('columnheader')
-      const amountHeader = headers.find((h) => h.textContent?.includes('Amount (ARS)'))!
+      const amountHeader = headers.find((h) => h.textContent?.includes('ARS'))!
 
       await user.click(amountHeader)
 
@@ -183,8 +183,8 @@ describe('ExpenseTable Component', () => {
       const user = userEvent.setup()
       render(<ExpenseTable expenses={mockExpenses} />)
 
-      const cardSelect = screen.getByRole('combobox')
-      await user.selectOptions(cardSelect, 'card-1')
+      const cardButton = screen.getByRole('button', { name: 'John Doe' })
+      await user.click(cardButton)
 
       await waitFor(() => {
         expect(screen.getByText('Amazon Purchase')).toBeInTheDocument()
@@ -198,8 +198,8 @@ describe('ExpenseTable Component', () => {
       const user = userEvent.setup()
       render(<ExpenseTable expenses={mockExpenses} />)
 
-      const cardSelect = screen.getByRole('combobox')
-      await user.selectOptions(cardSelect, 'no-card')
+      const noCardButton = screen.getByRole('button', { name: 'No Card (Taxes/Fees)' })
+      await user.click(noCardButton)
 
       await waitFor(() => {
         expect(screen.getByText('Service Tax')).toBeInTheDocument()
@@ -208,19 +208,14 @@ describe('ExpenseTable Component', () => {
       })
     })
 
-    it('should show unique cards in dropdown', () => {
+    it('should show unique cards as filter buttons', () => {
       render(<ExpenseTable expenses={mockExpenses} />)
 
-      const cardSelect = screen.getByRole('combobox')
-      const options = within(cardSelect).getAllByRole('option')
-
-      // All Cards + 2 unique cards + No Card
-      expect(options).toHaveLength(4)
-      expect(options[0]).toHaveTextContent('All Cards')
-
-      const optionTexts = options.map((opt) => opt.textContent)
-      expect(optionTexts.some((text) => text?.includes('John Doe'))).toBe(true)
-      expect(optionTexts.some((text) => text?.includes('Jane Smith'))).toBe(true)
+      // All + 2 unique cards + No Card
+      expect(screen.getByRole('button', { name: 'All' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'John Doe' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Jane Smith' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'No Card (Taxes/Fees)' })).toBeInTheDocument()
     })
   })
 
@@ -230,10 +225,10 @@ describe('ExpenseTable Component', () => {
       render(<ExpenseTable expenses={mockExpenses} />)
 
       const searchInput = screen.getByPlaceholderText('Search expenses...')
-      const cardSelect = screen.getByRole('combobox')
+      const cardButton = screen.getByRole('button', { name: 'John Doe' })
 
       await user.type(searchInput, 'a')
-      await user.selectOptions(cardSelect, 'card-1')
+      await user.click(cardButton)
 
       await waitFor(() => {
         // Only "Amazon Purchase" matches: contains 'a' AND uses card-1
@@ -247,11 +242,10 @@ describe('ExpenseTable Component', () => {
       render(<ExpenseTable expenses={mockExpenses} />)
 
       const searchInput = screen.getByPlaceholderText('Search expenses...')
-      const cardSelect = screen.getByRole('combobox')
 
       // Apply filters
       await user.type(searchInput, 'amazon')
-      await user.selectOptions(cardSelect, 'card-1')
+      await user.click(screen.getByRole('button', { name: 'John Doe' }))
 
       await waitFor(() => {
         expect(screen.getByText('Showing 1 of 4 expenses')).toBeInTheDocument()
@@ -259,7 +253,7 @@ describe('ExpenseTable Component', () => {
 
       // Clear filters
       await user.clear(searchInput)
-      await user.selectOptions(cardSelect, '')
+      await user.click(screen.getByRole('button', { name: 'All' }))
 
       await waitFor(() => {
         expect(screen.getByText('Showing 4 of 4 expenses')).toBeInTheDocument()
