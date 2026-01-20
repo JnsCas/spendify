@@ -17,6 +17,19 @@ interface DashboardChartsProps {
   loading: boolean
 }
 
+const CURRENCY_COLORS: Record<Currency, { active: string; inactive: string; label: string }> = {
+  ARS: {
+    active: 'bg-blue-600 text-white ring-blue-600/20',
+    inactive: 'bg-blue-50 text-blue-700 hover:bg-blue-100 ring-blue-100',
+    label: 'Argentine Peso',
+  },
+  USD: {
+    active: 'bg-emerald-600 text-white ring-emerald-600/20',
+    inactive: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 ring-emerald-100',
+    label: 'US Dollar',
+  },
+}
+
 export function DashboardCharts({
   summary,
   endMonth,
@@ -35,10 +48,9 @@ export function DashboardCharts({
     if (totalArs > 0) availableCurrencies.push('ARS')
     if (totalUsd > 0) availableCurrencies.push('USD')
 
-    // Most used = highest total amount (comparing in a normalized way isn't perfect, but ARS is typically the primary)
+    // Most used = highest total amount
     if (totalArs > 0 || totalUsd > 0) {
       mostUsedCurrency = totalArs >= totalUsd ? 'ARS' : 'USD'
-      // If only one currency has data, use that one
       if (totalArs > 0 && totalUsd === 0) mostUsedCurrency = 'ARS'
       if (totalUsd > 0 && totalArs === 0) mostUsedCurrency = 'USD'
     }
@@ -60,11 +72,15 @@ export function DashboardCharts({
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <div className="h-10 w-32 animate-pulse rounded-lg bg-gray-200" />
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="h-[300px] animate-pulse rounded-lg bg-gray-200" />
-          <div className="h-[300px] animate-pulse rounded-lg bg-gray-200" />
+      <div className="rounded-lg border border-gray-200 bg-white">
+        <div className="border-b border-gray-100 px-4 py-3">
+          <div className="h-6 w-24 animate-pulse rounded bg-gray-200" />
+        </div>
+        <div className="p-4">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="h-[280px] animate-pulse rounded-lg bg-gray-100" />
+            <div className="h-[280px] animate-pulse rounded-lg bg-gray-100" />
+          </div>
         </div>
       </div>
     )
@@ -72,10 +88,15 @@ export function DashboardCharts({
 
   if (!summary || availableCurrencies.length === 0) {
     return (
-      <div className="flex h-[300px] items-center justify-center rounded-lg border border-gray-200 bg-gray-50">
-        <p className="text-gray-500">
-          No spending data for {formatDateRangeLabel(endMonth)}
-        </p>
+      <div className="rounded-lg border border-gray-200 bg-white">
+        <div className="border-b border-gray-100 px-4 py-3">
+          <h2 className="text-lg font-semibold text-gray-900">Spending</h2>
+        </div>
+        <div className="flex h-[200px] items-center justify-center p-4">
+          <p className="text-gray-500">
+            No spending data for {formatDateRangeLabel(endMonth)}
+          </p>
+        </div>
       </div>
     )
   }
@@ -83,28 +104,36 @@ export function DashboardCharts({
   const activeCurrency = selectedCurrency || mostUsedCurrency || 'ARS'
 
   return (
-    <div className="space-y-4">
-      {/* Currency Selector Pills */}
-      {availableCurrencies.length > 1 && (
-        <div className="flex items-center gap-2">
-          {availableCurrencies.map((currency) => (
-            <button
-              key={currency}
-              onClick={() => setSelectedCurrency(currency)}
-              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                activeCurrency === currency
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {currency}
-            </button>
-          ))}
-        </div>
-      )}
+    <div className="rounded-lg border border-gray-200 bg-white">
+      {/* Section Header with Currency Pills */}
+      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+        <h2 className="text-lg font-semibold text-gray-900">Spending</h2>
+
+        {/* Currency Pills - clearly part of this section */}
+        {availableCurrencies.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            {availableCurrencies.map((currency) => {
+              const colors = CURRENCY_COLORS[currency]
+              const isActive = activeCurrency === currency
+              return (
+                <button
+                  key={currency}
+                  onClick={() => setSelectedCurrency(currency)}
+                  className={`rounded-full px-3 py-1 text-sm font-medium ring-1 transition-all ${
+                    isActive ? colors.active : colors.inactive
+                  }`}
+                  title={colors.label}
+                >
+                  {currency}
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Charts */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 p-4 lg:grid-cols-2">
         <SpendingTrendChart
           monthlyData={summary.rangeSummary.monthlyData}
           endMonth={endMonth}
