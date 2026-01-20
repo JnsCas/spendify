@@ -34,6 +34,20 @@ export interface CompletingInstallment {
   lastFourDigits: string | null;
 }
 
+export interface MonthExpense {
+  id: string;
+  description: string;
+  amountArs: number | null;
+  amountUsd: number | null;
+  currentInstallment: number | null;
+  totalInstallments: number | null;
+  cardId: string | null;
+  cardCustomName: string | null;
+  cardLastFourDigits: string | null;
+  statementId: string;
+  statementFilename: string;
+}
+
 @Injectable()
 export class ExpenseRepository {
   constructor(
@@ -147,6 +161,54 @@ export class ExpenseRepository {
       cardId: r.cardId || null,
       customName: r.customName || null,
       lastFourDigits: r.lastFourDigits || null,
+    }));
+  }
+
+  async findByUserAndMonth(
+    userId: string,
+    year: number,
+    month: number,
+  ): Promise<MonthExpense[]> {
+    const result = await this.repository
+      .createQueryBuilder('e')
+      .leftJoin('e.statement', 's')
+      .leftJoin('e.card', 'c')
+      .select([
+        'e.id as "id"',
+        'e.description as "description"',
+        'e.amountArs as "amountArs"',
+        'e.amountUsd as "amountUsd"',
+        'e.currentInstallment as "currentInstallment"',
+        'e.totalInstallments as "totalInstallments"',
+        'e.cardId as "cardId"',
+        'c.customName as "cardCustomName"',
+        'c.lastFourDigits as "cardLastFourDigits"',
+        's.id as "statementId"',
+        's.originalFilename as "statementFilename"',
+      ])
+      .where('s.userId = :userId', { userId })
+      .andWhere('s.status = :status', { status: 'completed' })
+      .andWhere('EXTRACT(YEAR FROM s.statementDate) = :year', { year })
+      .andWhere('EXTRACT(MONTH FROM s.statementDate) = :month', { month })
+      .orderBy('e.createdAt', 'ASC')
+      .getRawMany();
+
+    return result.map((r) => ({
+      id: r.id,
+      description: r.description,
+      amountArs: r.amountArs ? parseFloat(r.amountArs) : null,
+      amountUsd: r.amountUsd ? parseFloat(r.amountUsd) : null,
+      currentInstallment: r.currentInstallment
+        ? parseInt(r.currentInstallment, 10)
+        : null,
+      totalInstallments: r.totalInstallments
+        ? parseInt(r.totalInstallments, 10)
+        : null,
+      cardId: r.cardId || null,
+      cardCustomName: r.cardCustomName || null,
+      cardLastFourDigits: r.cardLastFourDigits || null,
+      statementId: r.statementId,
+      statementFilename: r.statementFilename,
     }));
   }
 }
