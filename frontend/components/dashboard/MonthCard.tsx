@@ -1,7 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { DocumentIcon } from '@heroicons/react/24/outline'
+import { CalendarIcon, DocumentIcon } from '@heroicons/react/24/outline'
 import { MONTH_NAMES, Statement } from '@/lib/types/dashboard'
 
 interface MonthCardProps {
@@ -12,6 +11,7 @@ interface MonthCardProps {
   statementCount: number
   statements: Statement[]
   onStatementClick: (id: string) => void
+  onMonthClick: (year: number, month: number) => void
   isHighestSpending?: boolean
   isLowestSpending?: boolean
 }
@@ -39,11 +39,10 @@ export function MonthCard({
   statementCount,
   statements,
   onStatementClick,
+  onMonthClick,
   isHighestSpending = false,
   isLowestSpending = false,
 }: MonthCardProps) {
-  const [expanded, setExpanded] = useState(true)
-
   const monthName = MONTH_NAMES[month - 1]
   const hasStatements = statementCount > 0
 
@@ -79,18 +78,31 @@ export function MonthCard({
       className={`overflow-hidden rounded-lg border transition-all hover:shadow-sm ${getCardClasses()}`}
     >
       {/* Header */}
-      <div
-        className={`cursor-pointer border-b px-3 py-2.5 ${getHeaderClasses()}`}
-        onClick={() => hasStatements && setExpanded(!expanded)}
-      >
+      <div className={`border-b px-3 py-2.5 ${getHeaderClasses()}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold text-gray-900">
-              {monthName}
-              <span className="ml-1 font-normal text-gray-500">
-                {year}
-              </span>
-            </h3>
+            <CalendarIcon className="h-4 w-4 text-gray-400" />
+            {hasStatements ? (
+              <button
+                onClick={() => onMonthClick(year, month)}
+                className="rounded-md px-1.5 py-0.5 -ml-1.5 hover:bg-black/5 transition-colors"
+                title="View all expenses for this month"
+              >
+                <h3 className="text-sm font-semibold text-gray-900">
+                  {monthName}
+                  <span className="ml-1 font-normal text-gray-500">
+                    {year}
+                  </span>
+                </h3>
+              </button>
+            ) : (
+              <h3 className="text-sm font-semibold text-gray-900">
+                {monthName}
+                <span className="ml-1 font-normal text-gray-500">
+                  {year}
+                </span>
+              </h3>
+            )}
             {isHighestSpending && (
               <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white">
                 High
@@ -129,8 +141,8 @@ export function MonthCard({
               )}
             </div>
 
-            {/* Expanded statement list */}
-            {expanded && statements.length > 0 && (
+            {/* Statement list */}
+            {statements.length > 0 && (
               <div className="mt-3 space-y-1 border-t border-gray-100 pt-2">
                 {statements.map((statement) => (
                   <button

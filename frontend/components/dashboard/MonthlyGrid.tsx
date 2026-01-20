@@ -13,6 +13,7 @@ interface MonthlyGridProps {
   monthlyData: MonthlyData[]
   statements: Statement[]
   onStatementClick: (id: string) => void
+  onMonthClick: (year: number, month: number) => void
   loading: boolean
 }
 
@@ -21,6 +22,7 @@ export function MonthlyGrid({
   monthlyData,
   statements,
   onStatementClick,
+  onMonthClick,
   loading,
 }: MonthlyGridProps) {
   const now = new Date()
@@ -110,6 +112,7 @@ export function MonthlyGrid({
             statementCount={monthData?.statementCount || 0}
             statements={monthStatements}
             onStatementClick={onStatementClick}
+            onMonthClick={onMonthClick}
             isHighestSpending={isHighest || false}
             isLowestSpending={isLowest || false}
           />

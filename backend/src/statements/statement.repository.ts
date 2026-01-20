@@ -201,4 +201,24 @@ export class StatementRepository {
       month: parseInt(result.month, 10),
     };
   }
+
+  async findByUserAndMonth(
+    userId: string,
+    year: number,
+    month: number,
+  ): Promise<Statement[]> {
+    return this.repository
+      .createQueryBuilder('statement')
+      .where('statement.userId = :userId', { userId })
+      .andWhere('EXTRACT(YEAR FROM statement.statementDate) = :year', { year })
+      .andWhere('EXTRACT(MONTH FROM statement.statementDate) = :month', { month })
+      .getMany();
+  }
+
+  async removeMany(statements: Statement[]): Promise<void> {
+    if (statements.length === 0) {
+      return;
+    }
+    await this.repository.remove(statements);
+  }
 }

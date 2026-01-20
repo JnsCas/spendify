@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { statementsApi } from '@/lib/api'
 import ExpenseTable from '@/components/ExpenseTable'
 import StatementSummary from '@/components/StatementSummary'
+import ConfirmationDialog from '@/components/ConfirmationDialog'
 
 interface Statement {
   id: string
@@ -24,6 +25,8 @@ export default function StatementDetailPage() {
   const router = useRouter()
   const [statement, setStatement] = useState<Statement | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const fetchStatement = async () => {
     try {
@@ -48,15 +51,24 @@ export default function StatementDetailPage() {
     }
   }, [statement?.status])
 
-  const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this statement?')) return
+  const handleDeleteClick = () => {
+    setShowDeleteDialog(true)
+  }
 
+  const handleDeleteConfirm = async () => {
+    setIsDeleting(true)
     try {
       await statementsApi.delete(params.id as string)
       router.push('/dashboard')
     } catch (error) {
       console.error('Failed to delete:', error)
+      setShowDeleteDialog(false)
+      setIsDeleting(false)
     }
+  }
+
+  const handleDeleteCancel = () => {
+    setShowDeleteDialog(false)
   }
 
   const handleExport = () => {
@@ -115,7 +127,7 @@ export default function StatementDetailPage() {
               </button>
             )}
             <button
-              onClick={handleDelete}
+              onClick={handleDeleteClick}
               className="rounded-lg px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
             >
               Delete
@@ -173,6 +185,18 @@ export default function StatementDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Delete confirmation dialog */}
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        title="Delete Statement"
+        message={`Are you sure you want to delete "${statement.originalFilename}"? This will permanently remove all ${statement.expenses?.length || 0} expenses associated with this statement. This action cannot be undone.`}
+        confirmLabel={isDeleting ? 'Deleting...' : 'Delete'}
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+      />
     </div>
   )
 }
