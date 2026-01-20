@@ -54,13 +54,13 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Drop zone */}
       <div
-        className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
+        className={`rounded-lg border-2 border-dashed p-8 text-center transition-all ${
           dragActive
-            ? 'border-blue-500 bg-blue-50'
-            : 'border-gray-300 hover:border-gray-400'
+            ? 'border-blue-400 bg-blue-50'
+            : 'border-gray-200 bg-gray-50/50 hover:border-gray-300 hover:bg-gray-50'
         }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -77,34 +77,36 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
 
         <div className="space-y-4">
           <div className="flex justify-center">
-            <svg
-              className="w-12 h-12 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-              />
-            </svg>
+            <div className="rounded-full bg-white p-3 ring-1 ring-gray-200">
+              <svg
+                className="h-8 w-8 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                />
+              </svg>
+            </div>
           </div>
 
           <div>
-            <p className="text-gray-600 mb-2">
+            <p className="mb-3 text-sm text-gray-600">
               Drag and drop your credit card statement PDFs here, or
             </p>
             <button
               onClick={() => inputRef.current?.click()}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+              className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
             >
               Browse Files
             </button>
           </div>
 
-          <p className="text-sm text-gray-500">
+          <p className="text-xs text-gray-400">
             PDF files only, max 500KB each, up to 12 files
           </p>
         </div>
@@ -112,21 +114,21 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
 
       {/* Error message */}
       {uploadError && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-600 text-sm">{uploadError}</p>
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+          <p className="text-sm text-red-600">{uploadError}</p>
         </div>
       )}
 
       {/* Duplicates warning */}
       {duplicates.length > 0 && (
-        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <svg className="h-5 w-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
-            <span className="font-medium text-amber-800">Duplicate Files Skipped</span>
+            <span className="text-sm font-medium text-amber-800">Duplicate Files Skipped</span>
           </div>
-          <ul className="text-sm text-amber-700 space-y-1">
+          <ul className="space-y-1 text-sm text-amber-700">
             {duplicates.map((dup, index) => (
               <li key={index}>
                 <span className="font-medium">{dup.originalFilename}</span> is a duplicate of{' '}
@@ -139,15 +141,15 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
 
       {/* File list */}
       {files.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="font-medium text-gray-900">
+        <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-medium text-gray-900">
               Files ({files.length})
             </h3>
             {!isUploading && (
               <button
                 onClick={clearAll}
-                className="text-sm text-gray-500 hover:text-red-500 transition"
+                className="text-xs text-gray-500 transition-colors hover:text-red-500"
               >
                 Clear all
               </button>
@@ -174,10 +176,10 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
             <button
               onClick={startUpload}
               disabled={!canUpload}
-              className={`px-6 py-2 rounded-lg font-medium transition ${
+              className={`rounded-lg px-5 py-2 text-sm font-medium transition-colors ${
                 canUpload
                   ? 'bg-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'cursor-not-allowed bg-gray-100 text-gray-400'
               }`}
             >
               {isUploading ? 'Uploading...' : 'Start Import'}
@@ -187,7 +189,7 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
           {allComplete && (
             <button
               onClick={onComplete}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+              className="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
             >
               View Dashboard
             </button>
@@ -198,14 +200,14 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
       {/* Completion summary */}
       {allComplete && (
         <div
-          className={`p-4 rounded-lg ${
-            failedCount > 0 ? 'bg-yellow-50 border border-yellow-200' : 'bg-green-50 border border-green-200'
+          className={`rounded-lg border p-4 ${
+            failedCount > 0 ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'
           }`}
         >
           <div className="flex items-center gap-2">
             {failedCount === 0 ? (
               <svg
-                className="w-5 h-5 text-green-500"
+                className="h-5 w-5 text-emerald-500"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -219,7 +221,7 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
               </svg>
             ) : (
               <svg
-                className="w-5 h-5 text-yellow-500"
+                className="h-5 w-5 text-amber-500"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -233,8 +235,8 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
               </svg>
             )}
             <span
-              className={`font-medium ${
-                failedCount > 0 ? 'text-yellow-800' : 'text-green-800'
+              className={`text-sm font-medium ${
+                failedCount > 0 ? 'text-amber-800' : 'text-emerald-800'
               }`}
             >
               Import Complete
@@ -242,7 +244,7 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
           </div>
           <p
             className={`mt-1 text-sm ${
-              failedCount > 0 ? 'text-yellow-700' : 'text-green-700'
+              failedCount > 0 ? 'text-amber-700' : 'text-emerald-700'
             }`}
           >
             {successCount} of {files.length} files processed successfully
