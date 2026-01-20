@@ -203,4 +203,116 @@ describe('ExpenseRepository', () => {
       expect(result[0].totalUsd).toBe(0);
     });
   });
+
+  describe('findCompletingInstallmentsByStatementMonth', () => {
+    const createCompletingInstallmentsQueryBuilder = (result: any) => {
+      const qb = {
+        leftJoin: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getRawMany: jest.fn().mockResolvedValue(result),
+      };
+      return qb;
+    };
+
+    it('should return completing installments for a statement month', async () => {
+      const mockResult = [
+        {
+          id: 'expense-1',
+          description: 'Netflix Subscription',
+          amountArs: '5000.00',
+          amountUsd: null,
+          currentInstallment: '3',
+          totalInstallments: '3',
+          cardId: 'card-1',
+          customName: 'Visa Gold',
+          lastFourDigits: '1234',
+        },
+        {
+          id: 'expense-2',
+          description: 'Flight tickets',
+          amountArs: null,
+          amountUsd: '250.00',
+          currentInstallment: '6',
+          totalInstallments: '6',
+          cardId: 'card-2',
+          customName: 'AMEX',
+          lastFourDigits: '5678',
+        },
+      ];
+      const qb = createCompletingInstallmentsQueryBuilder(mockResult);
+      typeOrmRepository.createQueryBuilder!.mockReturnValue(qb);
+
+      const result = await repository.findCompletingInstallmentsByStatementMonth(mockUserId, 2024, 12);
+
+      expect(typeOrmRepository.createQueryBuilder).toHaveBeenCalledWith('e');
+      expect(qb.leftJoin).toHaveBeenCalledWith('e.statement', 's');
+      expect(qb.leftJoin).toHaveBeenCalledWith('e.card', 'c');
+      expect(qb.where).toHaveBeenCalledWith('s.userId = :userId', { userId: mockUserId });
+      expect(qb.andWhere).toHaveBeenCalledWith('s.status = :status', { status: 'completed' });
+      expect(qb.andWhere).toHaveBeenCalledWith('EXTRACT(YEAR FROM s.statementDate) = :year', { year: 2024 });
+      expect(qb.andWhere).toHaveBeenCalledWith('EXTRACT(MONTH FROM s.statementDate) = :month', { month: 12 });
+      expect(qb.andWhere).toHaveBeenCalledWith('e.currentInstallment = e.totalInstallments');
+      expect(qb.andWhere).toHaveBeenCalledWith('e.totalInstallments > 1');
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({
+        id: 'expense-1',
+        description: 'Netflix Subscription',
+        amountArs: 5000,
+        amountUsd: null,
+        currentInstallment: 3,
+        totalInstallments: 3,
+        cardId: 'card-1',
+        customName: 'Visa Gold',
+        lastFourDigits: '1234',
+      });
+      expect(result[1]).toEqual({
+        id: 'expense-2',
+        description: 'Flight tickets',
+        amountArs: null,
+        amountUsd: 250,
+        currentInstallment: 6,
+        totalInstallments: 6,
+        cardId: 'card-2',
+        customName: 'AMEX',
+        lastFourDigits: '5678',
+      });
+    });
+
+    it('should return empty array when no completing installments', async () => {
+      const qb = createCompletingInstallmentsQueryBuilder([]);
+      typeOrmRepository.createQueryBuilder!.mockReturnValue(qb);
+
+      const result = await repository.findCompletingInstallmentsByStatementMonth(mockUserId, 2024, 12);
+
+      expect(result).toEqual([]);
+    });
+
+    it('should handle null card data', async () => {
+      const mockResult = [
+        {
+          id: 'expense-1',
+          description: 'Purchase',
+          amountArs: '1000.00',
+          amountUsd: null,
+          currentInstallment: '2',
+          totalInstallments: '2',
+          cardId: null,
+          customName: null,
+          lastFourDigits: null,
+        },
+      ];
+      const qb = createCompletingInstallmentsQueryBuilder(mockResult);
+      typeOrmRepository.createQueryBuilder!.mockReturnValue(qb);
+
+      const result = await repository.findCompletingInstallmentsByStatementMonth(mockUserId, 2024, 12);
+
+      expect(result[0].cardId).toBeNull();
+      expect(result[0].customName).toBeNull();
+      expect(result[0].lastFourDigits).toBeNull();
+    });
+  });
 });

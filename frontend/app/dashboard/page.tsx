@@ -8,8 +8,14 @@ import {
   MonthPaginator,
   MonthlyGrid,
   CircularProgress,
+  CompletingInstallmentsCard,
 } from '@/components/dashboard'
-import { Statement, StatementSummaryResponse, EndMonth } from '@/lib/types/dashboard'
+import {
+  Statement,
+  StatementSummaryResponse,
+  EndMonth,
+  CompletingInstallmentsResponse,
+} from '@/lib/types/dashboard'
 
 const POLL_INTERVAL = 10000 // 10 seconds
 
@@ -28,8 +34,12 @@ export default function DashboardPage() {
   const [processingStatements, setProcessingStatements] = useState<Statement[]>(
     []
   )
+  const [completingInstallments, setCompletingInstallments] =
+    useState<CompletingInstallmentsResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [summaryLoading, setSummaryLoading] = useState(true)
+  const [completingInstallmentsLoading, setCompletingInstallmentsLoading] =
+    useState(true)
 
   const fetchSummary = useCallback(async (endMonth: EndMonth) => {
     try {
@@ -64,12 +74,28 @@ export default function DashboardPage() {
     }
   }, [])
 
+  const fetchCompletingInstallments = useCallback(async (endMonth: EndMonth) => {
+    try {
+      setCompletingInstallmentsLoading(true)
+      const data = await statementsApi.getCompletingInstallments(
+        endMonth.year,
+        endMonth.month
+      )
+      setCompletingInstallments(data)
+    } catch (error) {
+      console.error('Failed to fetch completing installments:', error)
+    } finally {
+      setCompletingInstallmentsLoading(false)
+    }
+  }, [])
+
   // Initial data fetch
   useEffect(() => {
     fetchSummary(endMonth)
     fetchStatements(endMonth)
     fetchProcessingStatements()
-  }, [endMonth, fetchSummary, fetchStatements, fetchProcessingStatements])
+    fetchCompletingInstallments(endMonth)
+  }, [endMonth, fetchSummary, fetchStatements, fetchProcessingStatements, fetchCompletingInstallments])
 
   const handleEndMonthChange = (newEndMonth: EndMonth) => {
     setEndMonth(newEndMonth)
@@ -96,6 +122,7 @@ export default function DashboardPage() {
           fetchSummary(endMonth)
           fetchStatements(endMonth)
           fetchProcessingStatements()
+          fetchCompletingInstallments(endMonth)
         }
       } catch (error) {
         console.error('Error polling statuses:', error)
@@ -113,6 +140,7 @@ export default function DashboardPage() {
     fetchSummary,
     fetchStatements,
     fetchProcessingStatements,
+    fetchCompletingInstallments,
   ])
 
   // Calculate values for display
@@ -153,6 +181,12 @@ export default function DashboardPage() {
         summary={summary}
         endMonth={endMonth}
         loading={summaryLoading}
+      />
+
+      {/* Completing Installments Widget */}
+      <CompletingInstallmentsCard
+        data={completingInstallments}
+        loading={completingInstallmentsLoading}
       />
 
       {/* Monthly Grid */}

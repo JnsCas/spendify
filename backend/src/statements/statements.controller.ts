@@ -27,6 +27,7 @@ import {
   BulkUploadResponseDto,
   StatementStatusResponseDto,
   HasStatementsResponseDto,
+  CompletingInstallmentsResponseDto,
 } from './dto/bulk-upload-response.dto';
 
 @Controller('statements')
@@ -158,6 +159,40 @@ export class StatementsController {
   @Get('processing')
   async getProcessing(@CurrentUser() user: User): Promise<Statement[]> {
     return this.statementsService.findPendingOrProcessing(user.id);
+  }
+
+  @Get('completing-installments')
+  async getCompletingInstallments(
+    @CurrentUser() user: User,
+    @Query('year') yearParam?: string,
+    @Query('month') monthParam?: string,
+  ): Promise<CompletingInstallmentsResponseDto> {
+    const now = new Date();
+    const year = yearParam ? parseInt(yearParam, 10) : now.getFullYear();
+    const month = monthParam ? parseInt(monthParam, 10) : now.getMonth() + 1;
+
+    const result = await this.statementsService.getCompletingInstallments(
+      user.id,
+      year,
+      month,
+    );
+
+    return {
+      statementMonth: `${year}-${String(month).padStart(2, '0')}`,
+      installments: result.installments.map((i) => ({
+        id: i.id,
+        description: i.description,
+        amountArs: i.amountArs,
+        amountUsd: i.amountUsd,
+        currentInstallment: i.currentInstallment,
+        totalInstallments: i.totalInstallments,
+        cardId: i.cardId,
+        customName: i.customName,
+        lastFourDigits: i.lastFourDigits,
+      })),
+      totalArs: result.totalArs,
+      totalUsd: result.totalUsd,
+    };
   }
 
   @Get(':id')

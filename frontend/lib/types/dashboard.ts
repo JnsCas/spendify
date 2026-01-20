@@ -63,6 +63,25 @@ export interface CardSpendingDataPoint {
   color: string
 }
 
+export interface CompletingInstallment {
+  id: string
+  description: string
+  amountArs: number | null
+  amountUsd: number | null
+  currentInstallment: number
+  totalInstallments: number
+  cardId: string | null
+  customName: string | null
+  lastFourDigits: string | null
+}
+
+export interface CompletingInstallmentsResponse {
+  statementMonth: string
+  installments: CompletingInstallment[]
+  totalArs: number
+  totalUsd: number
+}
+
 // Month names for display
 export const MONTH_NAMES = [
   'January',

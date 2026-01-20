@@ -641,6 +641,314 @@ describe('Statements (e2e)', () => {
     });
   });
 
+  describe('GET /statements/completing-installments', () => {
+    it('should return completing installments for specified month', async () => {
+      const card = await createCard({
+        customName: 'Visa Gold',
+        lastFourDigits: '1234',
+      });
+
+      // Create statement in February
+      const febStatement = await createStatement({
+        statementDate: new Date('2024-02-15T12:00:00Z'),
+        status: StatementStatus.COMPLETED,
+      });
+
+      // Create completing installments in February statement
+      await createExpense(febStatement.id, card.id, {
+        description: 'Netflix Subscription',
+        amountArs: 5000,
+        amountUsd: undefined,
+        currentInstallment: 3,
+        totalInstallments: 3,
+      });
+      await createExpense(febStatement.id, card.id, {
+        description: 'Spotify Premium',
+        amountArs: 2000,
+        amountUsd: undefined,
+        currentInstallment: 6,
+        totalInstallments: 6,
+      });
+
+      // Create non-completing installment (should not be included)
+      await createExpense(febStatement.id, card.id, {
+        description: 'Ongoing Subscription',
+        amountArs: 3000,
+        currentInstallment: 2,
+        totalInstallments: 6,
+      });
+
+      const response = await request(app.getHttpServer())
+        .get('/statements/completing-installments?year=2024&month=2')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body.statementMonth).toBe('2024-02');
+      expect(response.body.installments).toHaveLength(2);
+      expect(response.body.totalArs).toBe(7000); // 5000 + 2000
+      expect(response.body.totalUsd).toBe(0); // No USD amounts
+
+      const netflix = response.body.installments.find(
+        (i: { description: string }) => i.description === 'Netflix Subscription',
+      );
+      expect(netflix).toBeDefined();
+      expect(netflix.currentInstallment).toBe(3);
+      expect(netflix.totalInstallments).toBe(3);
+      expect(netflix.customName).toBe('Visa Gold');
+      expect(netflix.lastFourDigits).toBe('1234');
+
+      const spotify = response.body.installments.find(
+        (i: { description: string }) => i.description === 'Spotify Premium',
+      );
+      expect(spotify).toBeDefined();
+      expect(spotify.currentInstallment).toBe(6);
+      expect(spotify.totalInstallments).toBe(6);
+    });
+
+    it('should filter by selected month, not latest', async () => {
+      const card = await createCard({
+        customName: 'Visa Gold',
+        lastFourDigits: '1234',
+      });
+
+      // Create statement in January with completing installment
+      const janStatement = await createStatement({
+        statementDate: new Date('2024-01-15T12:00:00Z'),
+        status: StatementStatus.COMPLETED,
+      });
+      await createExpense(janStatement.id, card.id, {
+        description: 'January Installment',
+        amountArs: 1000,
+        amountUsd: undefined,
+        currentInstallment: 4,
+        totalInstallments: 4,
+      });
+
+      // Create statement in February with completing installment
+      const febStatement = await createStatement({
+        statementDate: new Date('2024-02-15T12:00:00Z'),
+        status: StatementStatus.COMPLETED,
+      });
+      await createExpense(febStatement.id, card.id, {
+        description: 'February Installment',
+        amountArs: 2000,
+        amountUsd: undefined,
+        currentInstallment: 3,
+        totalInstallments: 3,
+      });
+
+      // Request January - should only see January installment
+      const janResponse = await request(app.getHttpServer())
+        .get('/statements/completing-installments?year=2024&month=1')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(janResponse.body.statementMonth).toBe('2024-01');
+      expect(janResponse.body.installments).toHaveLength(1);
+      expect(janResponse.body.installments[0].description).toBe('January Installment');
+
+      // Request February - should only see February installment
+      const febResponse = await request(app.getHttpServer())
+        .get('/statements/completing-installments?year=2024&month=2')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(febResponse.body.statementMonth).toBe('2024-02');
+      expect(febResponse.body.installments).toHaveLength(1);
+      expect(febResponse.body.installments[0].description).toBe('February Installment');
+    });
+
+    it('should aggregate completing installments from multiple statements in same month', async () => {
+      const card1 = await createCard({
+        customName: 'Visa Gold',
+        lastFourDigits: '1234',
+      });
+      const card2 = await createCard({
+        customName: 'AMEX',
+        lastFourDigits: '5678',
+      });
+
+      // Create two statements in the same month (different cards/banks)
+      const statement1 = await createStatement({
+        statementDate: new Date('2024-02-10T12:00:00Z'),
+        status: StatementStatus.COMPLETED,
+      });
+      const statement2 = await createStatement({
+        statementDate: new Date('2024-02-20T12:00:00Z'),
+        status: StatementStatus.COMPLETED,
+      });
+
+      // Create completing installments in both statements
+      await createExpense(statement1.id, card1.id, {
+        description: 'Netflix from Card 1',
+        amountArs: 5000,
+        amountUsd: undefined,
+        currentInstallment: 3,
+        totalInstallments: 3,
+      });
+      await createExpense(statement2.id, card2.id, {
+        description: 'Spotify from Card 2',
+        amountArs: 2000,
+        amountUsd: undefined,
+        currentInstallment: 6,
+        totalInstallments: 6,
+      });
+
+      const response = await request(app.getHttpServer())
+        .get('/statements/completing-installments?year=2024&month=2')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body.statementMonth).toBe('2024-02');
+      // Should include completing installments from BOTH statements
+      expect(response.body.installments).toHaveLength(2);
+      // Totals should aggregate across both statements
+      expect(response.body.totalArs).toBe(7000); // 5000 + 2000
+      expect(response.body.totalUsd).toBe(0);
+
+      const netflix = response.body.installments.find(
+        (i: { description: string }) => i.description === 'Netflix from Card 1',
+      );
+      expect(netflix).toBeDefined();
+      expect(netflix.customName).toBe('Visa Gold');
+
+      const spotify = response.body.installments.find(
+        (i: { description: string }) => i.description === 'Spotify from Card 2',
+      );
+      expect(spotify).toBeDefined();
+      expect(spotify.customName).toBe('AMEX');
+    });
+
+    it('should return empty installments for month with no data', async () => {
+      // Request a month with no statements
+      const response = await request(app.getHttpServer())
+        .get('/statements/completing-installments?year=2024&month=1')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body.statementMonth).toBe('2024-01');
+      expect(response.body.installments).toEqual([]);
+      expect(response.body.totalArs).toBe(0);
+      expect(response.body.totalUsd).toBe(0);
+    });
+
+    it('should return empty installments when no completing installments exist', async () => {
+      const card = await createCard();
+      const statement = await createStatement({
+        statementDate: new Date('2024-01-15T12:00:00Z'),
+        status: StatementStatus.COMPLETED,
+      });
+
+      // Create only non-completing installments
+      await createExpense(statement.id, card.id, {
+        description: 'Ongoing Subscription',
+        currentInstallment: 2,
+        totalInstallments: 6,
+      });
+
+      // Create single-payment expense (totalInstallments = 1, should be excluded)
+      await createExpense(statement.id, card.id, {
+        description: 'One-time Purchase',
+        currentInstallment: 1,
+        totalInstallments: 1,
+      });
+
+      const response = await request(app.getHttpServer())
+        .get('/statements/completing-installments?year=2024&month=1')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body.statementMonth).toBe('2024-01');
+      expect(response.body.installments).toEqual([]);
+      expect(response.body.totalArs).toBe(0);
+      expect(response.body.totalUsd).toBe(0);
+    });
+
+    it('should handle expenses without card', async () => {
+      const statement = await createStatement({
+        statementDate: new Date('2024-01-15'),
+        status: StatementStatus.COMPLETED,
+      });
+
+      // Create expense without card
+      await createExpense(statement.id, undefined, {
+        description: 'No Card Purchase',
+        amountArs: 1000,
+        amountUsd: undefined,
+        currentInstallment: 2,
+        totalInstallments: 2,
+      });
+
+      const response = await request(app.getHttpServer())
+        .get('/statements/completing-installments?year=2024&month=1')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body.installments).toHaveLength(1);
+      expect(response.body.installments[0].cardId).toBeNull();
+      expect(response.body.installments[0].customName).toBeNull();
+      expect(response.body.installments[0].lastFourDigits).toBeNull();
+      expect(response.body.totalArs).toBe(1000);
+      expect(response.body.totalUsd).toBe(0);
+    });
+
+    it('should only return installments for authenticated user', async () => {
+      const card = await createCard();
+      const statement = await createStatement({
+        statementDate: new Date('2024-01-15'),
+        status: StatementStatus.COMPLETED,
+      });
+
+      await createExpense(statement.id, card.id, {
+        currentInstallment: 3,
+        totalInstallments: 3,
+      });
+
+      // Create another user with their own data
+      const inviteCode = await inviteCodesService.generate();
+      const otherUserResponse = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({
+          email: 'otheruser-installments@example.com',
+          password: 'password123',
+          name: 'Other User',
+          inviteCode: inviteCode.code,
+        });
+
+      const otherUserToken = otherUserResponse.body.accessToken;
+
+      // Other user should see empty results for the same month
+      const response = await request(app.getHttpServer())
+        .get('/statements/completing-installments?year=2024&month=1')
+        .set('Authorization', `Bearer ${otherUserToken}`)
+        .expect(200);
+
+      expect(response.body.statementMonth).toBe('2024-01');
+      expect(response.body.installments).toEqual([]);
+      expect(response.body.totalArs).toBe(0);
+      expect(response.body.totalUsd).toBe(0);
+    });
+
+    it('should default to current month when no params provided', async () => {
+      const now = new Date();
+      const expectedMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+      const response = await request(app.getHttpServer())
+        .get('/statements/completing-installments')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(response.body.statementMonth).toBe(expectedMonth);
+      expect(response.body.installments).toEqual([]);
+    });
+
+    it('should reject request without authentication', async () => {
+      await request(app.getHttpServer())
+        .get('/statements/completing-installments?year=2024&month=1')
+        .expect(401);
+    });
+  });
+
   describe('POST /statements/upload-bulk', () => {
     it('should accept multiple PDF files and return statement IDs', async () => {
       // Use different content for each file to avoid duplicate detection

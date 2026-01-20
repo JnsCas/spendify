@@ -292,4 +292,51 @@ describe('StatementRepository', () => {
       expect(result).toBe(false);
     });
   });
+
+  describe('findLatestCompletedStatementMonth', () => {
+    const createLatestMonthQueryBuilder = (result: any) => {
+      const qb = {
+        select: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn().mockResolvedValue(result),
+      };
+      return qb;
+    };
+
+    it('should return the latest completed statement month', async () => {
+      const qb = createLatestMonthQueryBuilder({ year: '2024', month: '12' });
+      typeOrmRepository.createQueryBuilder!.mockReturnValue(qb);
+
+      const result = await repository.findLatestCompletedStatementMonth(mockUserId);
+
+      expect(typeOrmRepository.createQueryBuilder).toHaveBeenCalledWith('statement');
+      expect(qb.select).toHaveBeenCalledWith([
+        'EXTRACT(YEAR FROM MAX(statement.statementDate)) as year',
+        'EXTRACT(MONTH FROM MAX(statement.statementDate)) as month',
+      ]);
+      expect(qb.where).toHaveBeenCalledWith('statement.userId = :userId', { userId: mockUserId });
+      expect(qb.andWhere).toHaveBeenCalledWith('statement.status = :status', { status: 'completed' });
+      expect(qb.andWhere).toHaveBeenCalledWith('statement.statementDate IS NOT NULL');
+      expect(result).toEqual({ year: 2024, month: 12 });
+    });
+
+    it('should return null when no completed statements exist', async () => {
+      const qb = createLatestMonthQueryBuilder({ year: null, month: null });
+      typeOrmRepository.createQueryBuilder!.mockReturnValue(qb);
+
+      const result = await repository.findLatestCompletedStatementMonth(mockUserId);
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when result is undefined', async () => {
+      const qb = createLatestMonthQueryBuilder(undefined);
+      typeOrmRepository.createQueryBuilder!.mockReturnValue(qb);
+
+      const result = await repository.findLatestCompletedStatementMonth(mockUserId);
+
+      expect(result).toBeNull();
+    });
+  });
 });
