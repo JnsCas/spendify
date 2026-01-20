@@ -71,11 +71,11 @@ export function MonthlyGrid({
 
   if (loading) {
     return (
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {Array.from({ length: monthsToShow.length }, (_, i) => (
           <div
             key={i}
-            className="h-[200px] animate-pulse rounded-lg bg-gray-200"
+            className="h-[140px] animate-pulse rounded-lg border border-gray-100 bg-gray-50"
           />
         ))}
       </div>
@@ -83,7 +83,7 @@ export function MonthlyGrid({
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {monthsToShow.map(({ year, month }) => {
         const key = `${year}-${month}`
         const monthData = monthlyData.find(

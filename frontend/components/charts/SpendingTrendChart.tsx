@@ -85,18 +85,18 @@ export function SpendingTrendChart({
 
   if (!hasData) {
     return (
-      <div className="flex h-[300px] items-center justify-center rounded-lg border border-gray-200 bg-gray-50">
-        <p className="text-gray-500">No {currency} spending data</p>
+      <div className="flex h-[280px] items-center justify-center rounded-lg border border-gray-100 bg-gray-50">
+        <p className="text-sm text-gray-500">No {currency} spending data</p>
       </div>
     )
   }
 
   return (
-    <div className="flex h-full flex-col rounded-lg border border-gray-200 bg-white p-4">
-      <h3 className="mb-4 text-lg font-semibold text-gray-900">
+    <div className="flex h-full flex-col rounded-lg border border-gray-100 bg-gray-50/50 p-4">
+      <h3 className="mb-3 text-sm font-medium text-gray-700">
         Spending Trend
       </h3>
-      <ResponsiveContainer width="100%" height="100%" minHeight={250}>
+      <ResponsiveContainer width="100%" height="100%" minHeight={230}>
         <AreaChart
           data={chartData}
           margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
