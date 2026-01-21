@@ -68,7 +68,7 @@ export interface InstallmentDetail {
 
 export interface InstallmentsSummary {
   activeCount: number;
-  completingThisMonthCount: number;
+  completingThisMonthArs: number;
   totalRemainingArs: number;
   totalRemainingUsd: number;
 }
@@ -337,11 +337,13 @@ export class ExpenseRepository {
       )
       SELECT
         COUNT(*) FILTER (WHERE current_installment < total_installments) as "activeCount",
-        COUNT(*) FILTER (
-          WHERE current_installment = total_installments
+        COALESCE(SUM(
+          CASE WHEN current_installment = total_installments
           AND EXTRACT(YEAR FROM statement_date) = $2
           AND EXTRACT(MONTH FROM statement_date) = $3
-        ) as "completingCount",
+          THEN amount_ars
+          ELSE 0 END
+        ), 0) as "completingArs",
         COALESCE(SUM(
           CASE WHEN current_installment < total_installments
           THEN amount_ars * (total_installments - current_installment)
@@ -361,7 +363,7 @@ export class ExpenseRepository {
 
     return {
       activeCount: parseInt(row.activeCount || '0', 10),
-      completingThisMonthCount: parseInt(row.completingCount || '0', 10),
+      completingThisMonthArs: parseFloat(row.completingArs || '0'),
       totalRemainingArs: parseFloat(row.totalRemainingArs || '0'),
       totalRemainingUsd: parseFloat(row.totalRemainingUsd || '0'),
     };

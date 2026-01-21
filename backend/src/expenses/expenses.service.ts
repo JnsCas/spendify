@@ -83,7 +83,7 @@ export class ExpensesService {
   private mapToSummaryDto(summary: InstallmentsSummary): InstallmentsSummaryDto {
     return {
       activeCount: summary.activeCount,
-      completingThisMonthCount: summary.completingThisMonthCount,
+      completingThisMonthArs: summary.completingThisMonthArs,
       totalRemainingArs: summary.totalRemainingArs,
       totalRemainingUsd: summary.totalRemainingUsd,
     };

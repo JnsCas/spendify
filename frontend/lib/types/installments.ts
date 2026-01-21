@@ -1,6 +1,6 @@
 export interface InstallmentsSummary {
   activeCount: number
-  completingThisMonthCount: number
+  completingThisMonthArs: number
   totalRemainingArs: number
   totalRemainingUsd: number
 }
