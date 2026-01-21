@@ -4,7 +4,15 @@ import {
   ExpenseRepository,
   CreateExpenseData,
   MonthExpense,
+  InstallmentDetail,
+  InstallmentsSummary,
 } from './expense.repository';
+import {
+  InstallmentsResponseDto,
+  InstallmentsSummaryDto,
+  InstallmentDetailDto,
+  InstallmentCardDto,
+} from './dto/installments-response.dto';
 
 export interface CreateExpenseDto {
   statementId: string;
@@ -58,5 +66,57 @@ export class ExpensesService {
     month: number,
   ): Promise<MonthExpense[]> {
     return this.expenseRepository.findByUserAndMonth(userId, year, month);
+  }
+
+  async getInstallmentsByUser(
+    userId: string,
+    status?: 'active' | 'completing' | 'completed',
+  ): Promise<InstallmentsResponseDto> {
+    const [installments, summary] = await Promise.all([
+      this.expenseRepository.findAllInstallmentsByUser(userId, status),
+      this.expenseRepository.getInstallmentsSummary(userId),
+    ]);
+
+    return {
+      summary: this.mapToSummaryDto(summary),
+      installments: installments.map((i) => this.mapToInstallmentDto(i)),
+    };
+  }
+
+  private mapToSummaryDto(summary: InstallmentsSummary): InstallmentsSummaryDto {
+    return {
+      activeCount: summary.activeCount,
+      completingThisMonthCount: summary.completingThisMonthCount,
+      totalRemainingArs: summary.totalRemainingArs,
+      totalRemainingUsd: summary.totalRemainingUsd,
+    };
+  }
+
+  private mapToInstallmentDto(
+    installment: InstallmentDetail,
+  ): InstallmentDetailDto {
+    const card: InstallmentCardDto | null = installment.cardId
+      ? {
+          id: installment.cardId,
+          customName: installment.customName,
+          lastFourDigits: installment.lastFourDigits,
+        }
+      : null;
+
+    return {
+      id: installment.id,
+      description: installment.description,
+      purchaseDate: installment.purchaseDate,
+      currentInstallment: installment.currentInstallment,
+      totalInstallments: installment.totalInstallments,
+      monthlyAmountArs: installment.monthlyAmountArs,
+      monthlyAmountUsd: installment.monthlyAmountUsd,
+      remainingAmountArs: installment.remainingAmountArs,
+      remainingAmountUsd: installment.remainingAmountUsd,
+      remainingMonths: installment.remainingMonths,
+      card,
+      statementMonth: installment.statementMonth,
+      status: installment.status,
+    };
   }
 }

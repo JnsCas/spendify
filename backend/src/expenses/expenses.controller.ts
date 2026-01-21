@@ -17,11 +17,20 @@ import {
   MonthExpensesResponseDto,
   MonthExpenseDto,
 } from './dto/month-expenses-response.dto';
+import { InstallmentsResponseDto } from './dto/installments-response.dto';
 
 @Controller('expenses')
 @UseGuards(JwtAuthGuard)
 export class ExpensesController {
   constructor(private expensesService: ExpensesService) {}
+
+  @Get('installments')
+  async getInstallments(
+    @CurrentUser() user: User,
+    @Query('status') status?: 'active' | 'completing' | 'completed',
+  ): Promise<InstallmentsResponseDto> {
+    return this.expensesService.getInstallmentsByUser(user.id, status);
+  }
 
   @Get('by-month')
   async getByMonth(

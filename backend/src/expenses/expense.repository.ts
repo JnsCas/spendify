@@ -48,6 +48,31 @@ export interface MonthExpense {
   statementFilename: string;
 }
 
+export interface InstallmentDetail {
+  id: string;
+  description: string;
+  purchaseDate: Date | null;
+  currentInstallment: number;
+  totalInstallments: number;
+  monthlyAmountArs: number | null;
+  monthlyAmountUsd: number | null;
+  remainingAmountArs: number | null;
+  remainingAmountUsd: number | null;
+  remainingMonths: number;
+  cardId: string | null;
+  customName: string | null;
+  lastFourDigits: string | null;
+  statementMonth: string;
+  status: 'active' | 'completing' | 'completed';
+}
+
+export interface InstallmentsSummary {
+  activeCount: number;
+  completingThisMonthCount: number;
+  totalRemainingArs: number;
+  totalRemainingUsd: number;
+}
+
 @Injectable()
 export class ExpenseRepository {
   constructor(
@@ -210,5 +235,151 @@ export class ExpenseRepository {
       statementId: r.statementId,
       statementFilename: r.statementFilename,
     }));
+  }
+
+  async findAllInstallmentsByUser(
+    userId: string,
+    status?: 'active' | 'completing' | 'completed',
+  ): Promise<InstallmentDetail[]> {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const threeMonthsAgo = new Date(now);
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+    let query = this.repository
+      .createQueryBuilder('e')
+      .leftJoin('e.statement', 's')
+      .leftJoin('e.card', 'c')
+      .select([
+        'e.id as "id"',
+        'e.description as "description"',
+        'e.purchaseDate as "purchaseDate"',
+        'e.currentInstallment as "currentInstallment"',
+        'e.totalInstallments as "totalInstallments"',
+        'e.amountArs as "monthlyAmountArs"',
+        'e.amountUsd as "monthlyAmountUsd"',
+        'e.cardId as "cardId"',
+        'c.customName as "customName"',
+        'c.lastFourDigits as "lastFourDigits"',
+        's.statementDate as "statementDate"',
+      ])
+      .where('s.userId = :userId', { userId })
+      .andWhere('s.status = :statementStatus', { statementStatus: 'completed' })
+      .andWhere('e.totalInstallments > 1');
+
+    if (status === 'active') {
+      query = query.andWhere('e.currentInstallment < e.totalInstallments');
+    } else if (status === 'completing') {
+      query = query
+        .andWhere('e.currentInstallment = e.totalInstallments')
+        .andWhere('EXTRACT(YEAR FROM s.statementDate) = :year', {
+          year: currentYear,
+        })
+        .andWhere('EXTRACT(MONTH FROM s.statementDate) = :month', {
+          month: currentMonth,
+        });
+    } else if (status === 'completed') {
+      query = query
+        .andWhere('e.currentInstallment = e.totalInstallments')
+        .andWhere('s.statementDate >= :threeMonthsAgo', { threeMonthsAgo });
+    }
+
+    query = query.orderBy('e.createdAt', 'DESC');
+
+    const result = await query.getRawMany();
+
+    return result.map((r) => {
+      const currentInstallment = parseInt(r.currentInstallment, 10);
+      const totalInstallments = parseInt(r.totalInstallments, 10);
+      const remainingMonths = totalInstallments - currentInstallment;
+      const monthlyAmountArs = r.monthlyAmountArs
+        ? parseFloat(r.monthlyAmountArs)
+        : null;
+      const monthlyAmountUsd = r.monthlyAmountUsd
+        ? parseFloat(r.monthlyAmountUsd)
+        : null;
+
+      const statementDate = new Date(r.statementDate);
+      const statementYear = statementDate.getFullYear();
+      const statementMonth = statementDate.getMonth() + 1;
+
+      let installmentStatus: 'active' | 'completing' | 'completed';
+      if (currentInstallment < totalInstallments) {
+        installmentStatus = 'active';
+      } else if (
+        statementYear === currentYear &&
+        statementMonth === currentMonth
+      ) {
+        installmentStatus = 'completing';
+      } else {
+        installmentStatus = 'completed';
+      }
+
+      return {
+        id: r.id,
+        description: r.description,
+        purchaseDate: r.purchaseDate ? new Date(r.purchaseDate) : null,
+        currentInstallment,
+        totalInstallments,
+        monthlyAmountArs,
+        monthlyAmountUsd,
+        remainingAmountArs: monthlyAmountArs
+          ? monthlyAmountArs * remainingMonths
+          : null,
+        remainingAmountUsd: monthlyAmountUsd
+          ? monthlyAmountUsd * remainingMonths
+          : null,
+        remainingMonths,
+        cardId: r.cardId || null,
+        customName: r.customName || null,
+        lastFourDigits: r.lastFourDigits || null,
+        statementMonth: `${statementYear}-${String(statementMonth).padStart(2, '0')}`,
+        status: installmentStatus,
+      };
+    });
+  }
+
+  async getInstallmentsSummary(userId: string): Promise<InstallmentsSummary> {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+
+    const activeResult = await this.repository
+      .createQueryBuilder('e')
+      .leftJoin('e.statement', 's')
+      .select([
+        'COUNT(e.id) as "count"',
+        'COALESCE(SUM(e.amountArs * (e.totalInstallments - e.currentInstallment)), 0) as "totalRemainingArs"',
+        'COALESCE(SUM(e.amountUsd * (e.totalInstallments - e.currentInstallment)), 0) as "totalRemainingUsd"',
+      ])
+      .where('s.userId = :userId', { userId })
+      .andWhere('s.status = :status', { status: 'completed' })
+      .andWhere('e.totalInstallments > 1')
+      .andWhere('e.currentInstallment < e.totalInstallments')
+      .getRawOne();
+
+    const completingResult = await this.repository
+      .createQueryBuilder('e')
+      .leftJoin('e.statement', 's')
+      .select('COUNT(e.id) as "count"')
+      .where('s.userId = :userId', { userId })
+      .andWhere('s.status = :status', { status: 'completed' })
+      .andWhere('e.totalInstallments > 1')
+      .andWhere('e.currentInstallment = e.totalInstallments')
+      .andWhere('EXTRACT(YEAR FROM s.statementDate) = :year', {
+        year: currentYear,
+      })
+      .andWhere('EXTRACT(MONTH FROM s.statementDate) = :month', {
+        month: currentMonth,
+      })
+      .getRawOne();
+
+    return {
+      activeCount: parseInt(activeResult?.count || '0', 10),
+      completingThisMonthCount: parseInt(completingResult?.count || '0', 10),
+      totalRemainingArs: parseFloat(activeResult?.totalRemainingArs || '0'),
+      totalRemainingUsd: parseFloat(activeResult?.totalRemainingUsd || '0'),
+    };
   }
 }
