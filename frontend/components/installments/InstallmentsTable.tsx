@@ -7,7 +7,7 @@ interface InstallmentsTableProps {
   installments: InstallmentDetail[]
 }
 
-type SortField = 'description' | 'remainingAmount' | 'remainingMonths' | 'status'
+type SortField = 'description' | 'monthlyAmount' | 'remainingAmount' | 'remainingMonths' | 'status'
 type SortDirection = 'asc' | 'desc'
 
 export function InstallmentsTable({ installments }: InstallmentsTableProps) {
@@ -31,6 +31,10 @@ export function InstallmentsTable({ installments }: InstallmentsTableProps) {
       case 'description':
         aValue = a.description.toLowerCase()
         bValue = b.description.toLowerCase()
+        break
+      case 'monthlyAmount':
+        aValue = (a.monthlyAmountArs || 0) + (a.monthlyAmountUsd || 0)
+        bValue = (b.monthlyAmountArs || 0) + (b.monthlyAmountUsd || 0)
         break
       case 'remainingAmount':
         aValue = (a.remainingAmountArs || 0) + (a.remainingAmountUsd || 0)
@@ -146,8 +150,14 @@ export function InstallmentsTable({ installments }: InstallmentsTableProps) {
                 <SortIcon field="remainingMonths" />
               </div>
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-              Monthly Payment
+            <th
+              onClick={() => handleSort('monthlyAmount')}
+              className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:bg-gray-100"
+            >
+              <div className="flex items-center">
+                Monthly Payment
+                <SortIcon field="monthlyAmount" />
+              </div>
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
               Card
@@ -195,12 +205,12 @@ export function InstallmentsTable({ installments }: InstallmentsTableProps) {
                 <td className="px-6 py-4">
                   <div className="space-y-1">
                     {installment.remainingAmountArs !== null && installment.remainingAmountArs > 0 && (
-                      <div className="text-sm font-medium text-blue-600">
+                      <div className="text-sm text-gray-600">
                         {formatCurrency(installment.remainingAmountArs, 'ARS')}
                       </div>
                     )}
                     {installment.remainingAmountUsd !== null && installment.remainingAmountUsd > 0 && (
-                      <div className="text-sm font-medium text-emerald-600">
+                      <div className="text-sm text-gray-600">
                         {formatCurrency(installment.remainingAmountUsd, 'USD')}
                       </div>
                     )}
@@ -212,12 +222,12 @@ export function InstallmentsTable({ installments }: InstallmentsTableProps) {
                 <td className="px-6 py-4">
                   <div className="space-y-1">
                     {installment.monthlyAmountArs !== null && installment.monthlyAmountArs > 0 && (
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm font-medium text-blue-600">
                         {formatCurrency(installment.monthlyAmountArs, 'ARS')}
                       </div>
                     )}
                     {installment.monthlyAmountUsd !== null && installment.monthlyAmountUsd > 0 && (
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm font-medium text-emerald-600">
                         {formatCurrency(installment.monthlyAmountUsd, 'USD')}
                       </div>
                     )}

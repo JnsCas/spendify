@@ -285,18 +285,9 @@ export class ExpenseRepository {
       const statementMonth = statementDate.getMonth() + 1;
 
       // Determine status based on current state
-      let installmentStatus: 'active' | 'completing';
-      if (currentInstallment < totalInstallments) {
-        installmentStatus = 'active';
-      } else if (
-        statementYear === currentYear &&
-        statementMonth === currentMonth
-      ) {
-        installmentStatus = 'completing';
-      } else {
-        // Skip old completed installments
-        return null;
-      }
+      // Active: has remaining payments, Completing: on final payment
+      const installmentStatus: 'active' | 'completing' =
+        currentInstallment < totalInstallments ? 'active' : 'completing';
 
       return {
         id: r.id,
@@ -319,7 +310,7 @@ export class ExpenseRepository {
         statementMonth: `${statementYear}-${String(statementMonth).padStart(2, '0')}`,
         status: installmentStatus,
       };
-    }).filter((item): item is InstallmentDetail => item !== null);
+    });
   }
 
   async getInstallmentsSummary(userId: string): Promise<InstallmentsSummary> {

@@ -65,32 +65,32 @@ export function InstallmentCard({ installment }: InstallmentCardProps) {
 
       <div className="space-y-2 border-t border-gray-100 pt-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-500">Remaining:</span>
+          <span className="text-sm text-gray-500">Monthly:</span>
           <div className="text-right">
-            {installment.remainingAmountArs !== null && installment.remainingAmountArs > 0 && (
+            {installment.monthlyAmountArs !== null && installment.monthlyAmountArs > 0 && (
               <div className="text-sm font-medium text-blue-600">
-                {formatCurrency(installment.remainingAmountArs, 'ARS')}
+                {formatCurrency(installment.monthlyAmountArs, 'ARS')}
               </div>
             )}
-            {installment.remainingAmountUsd !== null && installment.remainingAmountUsd > 0 && (
+            {installment.monthlyAmountUsd !== null && installment.monthlyAmountUsd > 0 && (
               <div className="text-sm font-medium text-emerald-600">
-                {formatCurrency(installment.remainingAmountUsd, 'USD')}
+                {formatCurrency(installment.monthlyAmountUsd, 'USD')}
               </div>
             )}
           </div>
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-500">Monthly:</span>
+          <span className="text-sm text-gray-500">Remaining:</span>
           <div className="text-right">
-            {installment.monthlyAmountArs !== null && installment.monthlyAmountArs > 0 && (
+            {installment.remainingAmountArs !== null && installment.remainingAmountArs > 0 && (
               <div className="text-sm text-gray-600">
-                {formatCurrency(installment.monthlyAmountArs, 'ARS')}
+                {formatCurrency(installment.remainingAmountArs, 'ARS')}
               </div>
             )}
-            {installment.monthlyAmountUsd !== null && installment.monthlyAmountUsd > 0 && (
+            {installment.remainingAmountUsd !== null && installment.remainingAmountUsd > 0 && (
               <div className="text-sm text-gray-600">
-                {formatCurrency(installment.monthlyAmountUsd, 'USD')}
+                {formatCurrency(installment.remainingAmountUsd, 'USD')}
               </div>
             )}
           </div>
