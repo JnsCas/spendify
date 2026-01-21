@@ -1,8 +1,8 @@
 export interface InstallmentsSummary {
   activeCount: number
   completingThisMonthArs: number
-  totalRemainingArs: number
   totalRemainingUsd: number
+  totalMonthlyPaymentArs: number
 }
 
 export interface InstallmentCard {

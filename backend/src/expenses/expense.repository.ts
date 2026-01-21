@@ -69,8 +69,8 @@ export interface InstallmentDetail {
 export interface InstallmentsSummary {
   activeCount: number;
   completingThisMonthArs: number;
-  totalRemainingArs: number;
   totalRemainingUsd: number;
+  totalMonthlyPaymentArs: number;
 }
 
 @Injectable()
@@ -346,14 +346,14 @@ export class ExpenseRepository {
         ), 0) as "completingArs",
         COALESCE(SUM(
           CASE WHEN current_installment < total_installments
-          THEN amount_ars * (total_installments - current_installment)
-          ELSE 0 END
-        ), 0) as "totalRemainingArs",
-        COALESCE(SUM(
-          CASE WHEN current_installment < total_installments
           THEN amount_usd * (total_installments - current_installment)
           ELSE 0 END
-        ), 0) as "totalRemainingUsd"
+        ), 0) as "totalRemainingUsd",
+        COALESCE(SUM(
+          CASE WHEN current_installment < total_installments
+          THEN amount_ars
+          ELSE 0 END
+        ), 0) as "totalMonthlyPaymentArs"
       FROM deduplicated
       `,
       [userId, currentYear, currentMonth],
@@ -364,8 +364,8 @@ export class ExpenseRepository {
     return {
       activeCount: parseInt(row.activeCount || '0', 10),
       completingThisMonthArs: parseFloat(row.completingArs || '0'),
-      totalRemainingArs: parseFloat(row.totalRemainingArs || '0'),
       totalRemainingUsd: parseFloat(row.totalRemainingUsd || '0'),
+      totalMonthlyPaymentArs: parseFloat(row.totalMonthlyPaymentArs || '0'),
     };
   }
 }

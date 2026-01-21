@@ -72,8 +72,8 @@ export default function InstallmentsPage() {
       return {
         activeCount: 0,
         completingThisMonthArs: 0,
-        totalRemainingArs: 0,
         totalRemainingUsd: 0,
+        totalMonthlyPaymentArs: 0,
       }
     }
 
@@ -83,8 +83,8 @@ export default function InstallmentsPage() {
     return {
       activeCount: activeInstallments.length,
       completingThisMonthArs: completingInstallments.reduce((sum, i) => sum + (i.monthlyAmountArs || 0), 0),
-      totalRemainingArs: activeInstallments.reduce((sum, i) => sum + (i.remainingAmountArs || 0), 0),
       totalRemainingUsd: activeInstallments.reduce((sum, i) => sum + (i.remainingAmountUsd || 0), 0),
+      totalMonthlyPaymentArs: activeInstallments.reduce((sum, i) => sum + (i.monthlyAmountArs || 0), 0),
     }
   }, [monthFilteredInstallments])
 

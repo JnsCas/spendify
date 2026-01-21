@@ -84,8 +84,8 @@ export class ExpensesService {
     return {
       activeCount: summary.activeCount,
       completingThisMonthArs: summary.completingThisMonthArs,
-      totalRemainingArs: summary.totalRemainingArs,
       totalRemainingUsd: summary.totalRemainingUsd,
+      totalMonthlyPaymentArs: summary.totalMonthlyPaymentArs,
     };
   }
 
