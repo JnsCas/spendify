@@ -125,7 +125,7 @@ export const expensesApi = {
 
 // Installments API
 export const installmentsApi = {
-  getAll: async (status?: 'active' | 'completing' | 'completed'): Promise<InstallmentsResponse> => {
+  getAll: async (status?: 'active' | 'completing'): Promise<InstallmentsResponse> => {
     const query = status ? `?status=${status}` : ''
     const { data } = await api.get(`/expenses/installments${query}`)
     return data

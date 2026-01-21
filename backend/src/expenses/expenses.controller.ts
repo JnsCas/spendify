@@ -27,7 +27,7 @@ export class ExpensesController {
   @Get('installments')
   async getInstallments(
     @CurrentUser() user: User,
-    @Query('status') status?: 'active' | 'completing' | 'completed',
+    @Query('status') status?: 'active' | 'completing',
   ): Promise<InstallmentsResponseDto> {
     return this.expensesService.getInstallmentsByUser(user.id, status);
   }

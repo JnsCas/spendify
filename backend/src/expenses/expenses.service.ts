@@ -70,7 +70,7 @@ export class ExpensesService {
 
   async getInstallmentsByUser(
     userId: string,
-    status?: 'active' | 'completing' | 'completed',
+    status?: 'active' | 'completing',
   ): Promise<InstallmentsResponseDto> {
     const [installments, summary] = await Promise.all([
       this.expenseRepository.findAllInstallmentsByUser(userId, status),

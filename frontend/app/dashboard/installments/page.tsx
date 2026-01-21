@@ -12,9 +12,9 @@ export default function InstallmentsPage() {
   const [data, setData] = useState<InstallmentsResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [selectedStatus, setSelectedStatus] = useState<'all' | 'active' | 'completing' | 'completed'>('all')
+  const [selectedStatus, setSelectedStatus] = useState<'all' | 'active' | 'completing'>('all')
 
-  const fetchInstallments = async (status?: 'active' | 'completing' | 'completed') => {
+  const fetchInstallments = async (status?: 'active' | 'completing') => {
     setLoading(true)
     setError('')
     try {
@@ -31,14 +31,14 @@ export default function InstallmentsPage() {
     fetchInstallments(selectedStatus === 'all' ? undefined : selectedStatus)
   }, [selectedStatus])
 
-  const handleStatusChange = (status: 'all' | 'active' | 'completing' | 'completed') => {
+  const handleStatusChange = (status: 'all' | 'active' | 'completing') => {
     setSelectedStatus(status)
   }
 
   const filteredInstallments: InstallmentDetail[] = data?.installments || []
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
@@ -46,14 +46,14 @@ export default function InstallmentsPage() {
       )}
 
       <div className="rounded-lg border border-gray-200 bg-white">
-        <div className="border-b border-gray-100 px-6 py-4">
-          <h1 className="text-2xl font-bold text-gray-900">Installments</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Track your ongoing payment commitments and plan your budget
+        <div className="border-b border-gray-100 px-4 py-3">
+          <h1 className="text-lg font-semibold text-gray-900">Installments</h1>
+          <p className="text-sm text-gray-500">
+            Track your ongoing payment commitments
           </p>
         </div>
 
-        <div className="p-6">
+        <div className="p-4">
           <InstallmentsSummaryCards
             summary={data?.summary || {
               activeCount: 0,
@@ -67,15 +67,12 @@ export default function InstallmentsPage() {
       </div>
 
       <div className="rounded-lg border border-gray-200 bg-white">
-        <div className="border-b border-gray-100 px-6 py-4">
+        <div className="border-b border-gray-100 px-4 py-3">
           <h2 className="text-lg font-semibold text-gray-900">All Installments</h2>
-          <p className="mt-1 text-sm text-gray-500">
-            View and filter your installment purchases
-          </p>
         </div>
 
-        <div className="p-6">
-          <div className="mb-6">
+        <div className="p-4">
+          <div className="mb-4">
             <InstallmentFilters
               selectedStatus={selectedStatus}
               onStatusChange={handleStatusChange}
@@ -92,7 +89,7 @@ export default function InstallmentsPage() {
               ))}
             </div>
           ) : filteredInstallments.length === 0 ? (
-            <div className="flex h-[300px] flex-col items-center justify-center rounded-lg border border-gray-100 bg-gray-50">
+            <div className="flex h-[200px] flex-col items-center justify-center rounded-lg border border-gray-100 bg-gray-50">
               <div className="mb-2 rounded-full bg-gray-100 p-3">
                 <svg
                   className="h-6 w-6 text-gray-400"
@@ -113,14 +110,12 @@ export default function InstallmentsPage() {
                   ? 'No installment purchases yet'
                   : selectedStatus === 'active'
                   ? 'No active installments'
-                  : selectedStatus === 'completing'
-                  ? 'No installments completing this month'
-                  : 'No recently completed installments'}
+                  : 'No installments completing this month'}
               </p>
               <p className="text-xs text-gray-400">
                 {selectedStatus === 'all'
                   ? 'Import statements with installment purchases to get started'
-                  : 'Try selecting a different filter'}
+                  : 'All caught up!'}
               </p>
             </div>
           ) : (

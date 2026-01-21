@@ -24,7 +24,7 @@ export class InstallmentDetailDto {
   remainingMonths: number;
   card: InstallmentCardDto | null;
   statementMonth: string;
-  status: 'active' | 'completing' | 'completed';
+  status: 'active' | 'completing';
 }
 
 export class InstallmentsResponseDto {

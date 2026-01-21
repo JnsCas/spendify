@@ -63,7 +63,7 @@ export interface InstallmentDetail {
   customName: string | null;
   lastFourDigits: string | null;
   statementMonth: string;
-  status: 'active' | 'completing' | 'completed';
+  status: 'active' | 'completing';
 }
 
 export interface InstallmentsSummary {
@@ -239,13 +239,11 @@ export class ExpenseRepository {
 
   async findAllInstallmentsByUser(
     userId: string,
-    status?: 'active' | 'completing' | 'completed',
+    status?: 'active' | 'completing',
   ): Promise<InstallmentDetail[]> {
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
-    const threeMonthsAgo = new Date(now);
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 
     let query = this.repository
       .createQueryBuilder('e')
@@ -269,8 +267,10 @@ export class ExpenseRepository {
       .andWhere('e.totalInstallments > 1');
 
     if (status === 'active') {
+      // Active: still has remaining payments
       query = query.andWhere('e.currentInstallment < e.totalInstallments');
     } else if (status === 'completing') {
+      // Completing: final payment is this month
       query = query
         .andWhere('e.currentInstallment = e.totalInstallments')
         .andWhere('EXTRACT(YEAR FROM s.statementDate) = :year', {
@@ -279,10 +279,15 @@ export class ExpenseRepository {
         .andWhere('EXTRACT(MONTH FROM s.statementDate) = :month', {
           month: currentMonth,
         });
-    } else if (status === 'completed') {
-      query = query
-        .andWhere('e.currentInstallment = e.totalInstallments')
-        .andWhere('s.statementDate >= :threeMonthsAgo', { threeMonthsAgo });
+    } else {
+      // All: show active + completing (exclude old completed ones)
+      query = query.andWhere(
+        '(e.currentInstallment < e.totalInstallments OR ' +
+          '(e.currentInstallment = e.totalInstallments AND ' +
+          'EXTRACT(YEAR FROM s.statementDate) = :year AND ' +
+          'EXTRACT(MONTH FROM s.statementDate) = :month))',
+        { year: currentYear, month: currentMonth },
+      );
     }
 
     query = query.orderBy('e.createdAt', 'DESC');
@@ -304,16 +309,11 @@ export class ExpenseRepository {
       const statementYear = statementDate.getFullYear();
       const statementMonth = statementDate.getMonth() + 1;
 
-      let installmentStatus: 'active' | 'completing' | 'completed';
+      let installmentStatus: 'active' | 'completing';
       if (currentInstallment < totalInstallments) {
         installmentStatus = 'active';
-      } else if (
-        statementYear === currentYear &&
-        statementMonth === currentMonth
-      ) {
-        installmentStatus = 'completing';
       } else {
-        installmentStatus = 'completed';
+        installmentStatus = 'completing';
       }
 
       return {

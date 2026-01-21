@@ -24,7 +24,7 @@ export interface InstallmentDetail {
   remainingMonths: number
   card: InstallmentCard | null
   statementMonth: string
-  status: 'active' | 'completing' | 'completed'
+  status: 'active' | 'completing'
 }
 
 export interface InstallmentsResponse {
