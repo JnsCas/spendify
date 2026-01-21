@@ -237,64 +237,39 @@ export class ExpenseRepository {
     }));
   }
 
-  async findAllInstallmentsByUser(
-    userId: string,
-    status?: 'active' | 'completing',
-  ): Promise<InstallmentDetail[]> {
+  async findAllInstallmentsByUser(userId: string): Promise<InstallmentDetail[]> {
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
 
-    let query = this.repository
-      .createQueryBuilder('e')
-      .leftJoin('e.statement', 's')
-      .leftJoin('e.card', 'c')
-      .select([
-        'e.id as "id"',
-        'e.description as "description"',
-        'e.purchaseDate as "purchaseDate"',
-        'e.currentInstallment as "currentInstallment"',
-        'e.totalInstallments as "totalInstallments"',
-        'e.amountArs as "monthlyAmountArs"',
-        'e.amountUsd as "monthlyAmountUsd"',
-        'e.cardId as "cardId"',
-        'c.customName as "customName"',
-        'c.lastFourDigits as "lastFourDigits"',
-        's.statementDate as "statementDate"',
-      ])
-      .where('s.userId = :userId', { userId })
-      .andWhere('s.status = :statementStatus', { statementStatus: 'completed' })
-      .andWhere('e.totalInstallments > 1');
+    // Use raw query with DISTINCT ON to get only the latest installment per series
+    // A series is identified by: description + total_installments + card_id
+    const result = await this.repository.query(
+      `
+      SELECT DISTINCT ON (e.description, e.total_installments, e.card_id)
+        e.id as "id",
+        e.description as "description",
+        e.purchase_date as "purchaseDate",
+        e.current_installment as "currentInstallment",
+        e.total_installments as "totalInstallments",
+        e.amount_ars as "monthlyAmountArs",
+        e.amount_usd as "monthlyAmountUsd",
+        e.card_id as "cardId",
+        c.custom_name as "customName",
+        c.last_four_digits as "lastFourDigits",
+        s.statement_date as "statementDate"
+      FROM expenses e
+      LEFT JOIN statements s ON e.statement_id = s.id
+      LEFT JOIN cards c ON e.card_id = c.id
+      WHERE s.user_id = $1
+        AND s.status = 'completed'
+        AND e.total_installments > 1
+      ORDER BY e.description, e.total_installments, e.card_id, e.current_installment DESC
+      `,
+      [userId],
+    );
 
-    if (status === 'active') {
-      // Active: still has remaining payments
-      query = query.andWhere('e.currentInstallment < e.totalInstallments');
-    } else if (status === 'completing') {
-      // Completing: final payment is this month
-      query = query
-        .andWhere('e.currentInstallment = e.totalInstallments')
-        .andWhere('EXTRACT(YEAR FROM s.statementDate) = :year', {
-          year: currentYear,
-        })
-        .andWhere('EXTRACT(MONTH FROM s.statementDate) = :month', {
-          month: currentMonth,
-        });
-    } else {
-      // All: show active + completing (exclude old completed ones)
-      query = query.andWhere(
-        '(e.currentInstallment < e.totalInstallments OR ' +
-          '(e.currentInstallment = e.totalInstallments AND ' +
-          'EXTRACT(YEAR FROM s.statementDate) = :year AND ' +
-          'EXTRACT(MONTH FROM s.statementDate) = :month))',
-        { year: currentYear, month: currentMonth },
-      );
-    }
-
-    query = query.orderBy('e.createdAt', 'DESC');
-
-    const result = await query.getRawMany();
-
-    return result.map((r) => {
+    return result.map((r: any) => {
       const currentInstallment = parseInt(r.currentInstallment, 10);
       const totalInstallments = parseInt(r.totalInstallments, 10);
       const remainingMonths = totalInstallments - currentInstallment;
@@ -309,11 +284,18 @@ export class ExpenseRepository {
       const statementYear = statementDate.getFullYear();
       const statementMonth = statementDate.getMonth() + 1;
 
+      // Determine status based on current state
       let installmentStatus: 'active' | 'completing';
       if (currentInstallment < totalInstallments) {
         installmentStatus = 'active';
-      } else {
+      } else if (
+        statementYear === currentYear &&
+        statementMonth === currentMonth
+      ) {
         installmentStatus = 'completing';
+      } else {
+        // Skip old completed installments
+        return null;
       }
 
       return {
@@ -337,7 +319,7 @@ export class ExpenseRepository {
         statementMonth: `${statementYear}-${String(statementMonth).padStart(2, '0')}`,
         status: installmentStatus,
       };
-    });
+    }).filter((item): item is InstallmentDetail => item !== null);
   }
 
   async getInstallmentsSummary(userId: string): Promise<InstallmentsSummary> {
@@ -345,41 +327,52 @@ export class ExpenseRepository {
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
 
-    const activeResult = await this.repository
-      .createQueryBuilder('e')
-      .leftJoin('e.statement', 's')
-      .select([
-        'COUNT(e.id) as "count"',
-        'COALESCE(SUM(e.amountArs * (e.totalInstallments - e.currentInstallment)), 0) as "totalRemainingArs"',
-        'COALESCE(SUM(e.amountUsd * (e.totalInstallments - e.currentInstallment)), 0) as "totalRemainingUsd"',
-      ])
-      .where('s.userId = :userId', { userId })
-      .andWhere('s.status = :status', { status: 'completed' })
-      .andWhere('e.totalInstallments > 1')
-      .andWhere('e.currentInstallment < e.totalInstallments')
-      .getRawOne();
+    // Use a subquery to get deduplicated installments, then aggregate
+    const result = await this.repository.query(
+      `
+      WITH deduplicated AS (
+        SELECT DISTINCT ON (e.description, e.total_installments, e.card_id)
+          e.current_installment,
+          e.total_installments,
+          e.amount_ars,
+          e.amount_usd,
+          s.statement_date
+        FROM expenses e
+        LEFT JOIN statements s ON e.statement_id = s.id
+        WHERE s.user_id = $1
+          AND s.status = 'completed'
+          AND e.total_installments > 1
+        ORDER BY e.description, e.total_installments, e.card_id, e.current_installment DESC
+      )
+      SELECT
+        COUNT(*) FILTER (WHERE current_installment < total_installments) as "activeCount",
+        COUNT(*) FILTER (
+          WHERE current_installment = total_installments
+          AND EXTRACT(YEAR FROM statement_date) = $2
+          AND EXTRACT(MONTH FROM statement_date) = $3
+        ) as "completingCount",
+        COALESCE(SUM(
+          CASE WHEN current_installment < total_installments
+          THEN amount_ars * (total_installments - current_installment)
+          ELSE 0 END
+        ), 0) as "totalRemainingArs",
+        COALESCE(SUM(
+          CASE WHEN current_installment < total_installments
+          THEN amount_usd * (total_installments - current_installment)
+          ELSE 0 END
+        ), 0) as "totalRemainingUsd"
+      FROM deduplicated
+      `,
+      [userId, currentYear, currentMonth],
+    );
 
-    const completingResult = await this.repository
-      .createQueryBuilder('e')
-      .leftJoin('e.statement', 's')
-      .select('COUNT(e.id) as "count"')
-      .where('s.userId = :userId', { userId })
-      .andWhere('s.status = :status', { status: 'completed' })
-      .andWhere('e.totalInstallments > 1')
-      .andWhere('e.currentInstallment = e.totalInstallments')
-      .andWhere('EXTRACT(YEAR FROM s.statementDate) = :year', {
-        year: currentYear,
-      })
-      .andWhere('EXTRACT(MONTH FROM s.statementDate) = :month', {
-        month: currentMonth,
-      })
-      .getRawOne();
+    const row = result[0] || {};
 
     return {
-      activeCount: parseInt(activeResult?.count || '0', 10),
-      completingThisMonthCount: parseInt(completingResult?.count || '0', 10),
-      totalRemainingArs: parseFloat(activeResult?.totalRemainingArs || '0'),
-      totalRemainingUsd: parseFloat(activeResult?.totalRemainingUsd || '0'),
+      activeCount: parseInt(row.activeCount || '0', 10),
+      completingThisMonthCount: parseInt(row.completingCount || '0', 10),
+      totalRemainingArs: parseFloat(row.totalRemainingArs || '0'),
+      totalRemainingUsd: parseFloat(row.totalRemainingUsd || '0'),
     };
   }
 }

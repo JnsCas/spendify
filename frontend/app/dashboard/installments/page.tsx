@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { installmentsApi } from '@/lib/api'
 import type { InstallmentsResponse, InstallmentDetail } from '@/lib/types/installments'
 import { InstallmentsSummaryCards } from '@/components/installments/InstallmentsSummaryCards'
@@ -14,28 +14,69 @@ export default function InstallmentsPage() {
   const [error, setError] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'active' | 'completing'>('all')
 
-  const fetchInstallments = async (status?: 'active' | 'completing') => {
-    setLoading(true)
-    setError('')
-    try {
-      const response = await installmentsApi.getAll(status)
-      setData(response)
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load installments')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const [selectedMonth, setSelectedMonth] = useState<string>('')
 
+  // Get unique months from installments for the month filter
+  const availableMonths = useMemo(() => {
+    if (!data?.installments) return []
+    const months = new Set(data.installments.map((i) => i.statementMonth))
+    return Array.from(months).sort().reverse()
+  }, [data?.installments])
+
+  // Auto-select the most recent month when data loads
   useEffect(() => {
-    fetchInstallments(selectedStatus === 'all' ? undefined : selectedStatus)
-  }, [selectedStatus])
+    if (availableMonths.length > 0 && !selectedMonth) {
+      setSelectedMonth(availableMonths[0])
+    }
+  }, [availableMonths, selectedMonth])
+
+  // Fetch data once
+  useEffect(() => {
+    const fetchInstallments = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        const response = await installmentsApi.getAll()
+        setData(response)
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Failed to load installments')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchInstallments()
+  }, [])
+
+  // Filter installments client-side (no flicker)
+  const filteredInstallments = useMemo(() => {
+    if (!data?.installments || !selectedMonth) return []
+
+    return data.installments.filter((installment) => {
+      // Filter by month
+      if (installment.statementMonth !== selectedMonth) return false
+
+      // Filter by status
+      if (selectedStatus !== 'all' && installment.status !== selectedStatus) return false
+
+      return true
+    })
+  }, [data?.installments, selectedStatus, selectedMonth])
 
   const handleStatusChange = (status: 'all' | 'active' | 'completing') => {
     setSelectedStatus(status)
   }
 
-  const filteredInstallments: InstallmentDetail[] = data?.installments || []
+  const handleMonthChange = (month: string) => {
+    setSelectedMonth(month)
+  }
+
+  // Format month for display
+  const formatMonth = (monthStr: string) => {
+    const [year, month] = monthStr.split('-')
+    const date = new Date(parseInt(year), parseInt(month) - 1)
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  }
 
   return (
     <div className="space-y-4">
@@ -72,11 +113,32 @@ export default function InstallmentsPage() {
         </div>
 
         <div className="p-4">
-          <div className="mb-4">
+          <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <InstallmentFilters
               selectedStatus={selectedStatus}
               onStatusChange={handleStatusChange}
             />
+
+            {/* Month Filter */}
+            {availableMonths.length > 0 && (
+              <div className="flex items-center gap-2">
+                <label htmlFor="month-filter" className="text-sm text-gray-500">
+                  Month:
+                </label>
+                <select
+                  id="month-filter"
+                  value={selectedMonth}
+                  onChange={(e) => handleMonthChange(e.target.value)}
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  {availableMonths.map((month) => (
+                    <option key={month} value={month}>
+                      {formatMonth(month)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {loading ? (
@@ -106,16 +168,18 @@ export default function InstallmentsPage() {
                 </svg>
               </div>
               <p className="text-sm text-gray-500">
-                {selectedStatus === 'all'
+                {data?.installments.length === 0
                   ? 'No installment purchases yet'
+                  : selectedStatus === 'all'
+                  ? 'No installments for this month'
                   : selectedStatus === 'active'
-                  ? 'No active installments'
+                  ? 'No active installments for this month'
                   : 'No installments completing this month'}
               </p>
               <p className="text-xs text-gray-400">
-                {selectedStatus === 'all'
+                {data?.installments.length === 0
                   ? 'Import statements with installment purchases to get started'
-                  : 'All caught up!'}
+                  : 'Try selecting a different month'}
               </p>
             </div>
           ) : (

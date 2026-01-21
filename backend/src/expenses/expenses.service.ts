@@ -68,12 +68,9 @@ export class ExpensesService {
     return this.expenseRepository.findByUserAndMonth(userId, year, month);
   }
 
-  async getInstallmentsByUser(
-    userId: string,
-    status?: 'active' | 'completing',
-  ): Promise<InstallmentsResponseDto> {
+  async getInstallmentsByUser(userId: string): Promise<InstallmentsResponseDto> {
     const [installments, summary] = await Promise.all([
-      this.expenseRepository.findAllInstallmentsByUser(userId, status),
+      this.expenseRepository.findAllInstallmentsByUser(userId),
       this.expenseRepository.getInstallmentsSummary(userId),
     ]);
 
