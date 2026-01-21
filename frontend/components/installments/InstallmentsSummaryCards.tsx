@@ -61,13 +61,13 @@ export function InstallmentsSummaryCards({ summary, loading }: InstallmentsSumma
         <div className="flex items-start justify-between">
           <div>
             <p className="text-sm text-gray-500">Completing This Month</p>
-            <p className="mt-1 text-2xl font-semibold text-emerald-600">
+            <p className="mt-1 text-2xl font-semibold text-purple-600">
               {formatCurrency(summary.completingThisMonthArs, 'ARS')}
             </p>
           </div>
-          <div className="rounded-lg bg-emerald-50 p-2">
+          <div className="rounded-lg bg-purple-50 p-2">
             <svg
-              className="h-5 w-5 text-emerald-600"
+              className="h-5 w-5 text-purple-600"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -88,13 +88,13 @@ export function InstallmentsSummaryCards({ summary, loading }: InstallmentsSumma
         <div className="flex items-start justify-between">
           <div>
             <p className="text-sm text-gray-500">Total Remaining (USD)</p>
-            <p className="mt-1 text-2xl font-semibold text-purple-600">
+            <p className="mt-1 text-2xl font-semibold text-emerald-600">
               {formatCurrency(summary.totalRemainingUsd, 'USD')}
             </p>
           </div>
-          <div className="rounded-lg bg-purple-50 p-2">
+          <div className="rounded-lg bg-emerald-50 p-2">
             <svg
-              className="h-5 w-5 text-purple-600"
+              className="h-5 w-5 text-emerald-600"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
