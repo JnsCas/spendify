@@ -48,20 +48,45 @@ export default function InstallmentsPage() {
     fetchInstallments()
   }, [])
 
-  // Filter installments client-side (no flicker)
-  const filteredInstallments = useMemo(() => {
+  // Filter installments by month (for the list view)
+  const monthFilteredInstallments = useMemo(() => {
     if (!data?.installments || !selectedMonth) return []
 
     return data.installments.filter((installment) => {
-      // Filter by month
-      if (installment.statementMonth !== selectedMonth) return false
-
-      // Filter by status
-      if (selectedStatus !== 'all' && installment.status !== selectedStatus) return false
-
-      return true
+      return installment.statementMonth === selectedMonth
     })
-  }, [data?.installments, selectedStatus, selectedMonth])
+  }, [data?.installments, selectedMonth])
+
+  // Further filter by status for the list view
+  const filteredInstallments = useMemo(() => {
+    if (selectedStatus === 'all') return monthFilteredInstallments
+
+    return monthFilteredInstallments.filter((installment) => {
+      return installment.status === selectedStatus
+    })
+  }, [monthFilteredInstallments, selectedStatus])
+
+  // Calculate summary from month-filtered installments (not affected by status filter)
+  const calculatedSummary = useMemo(() => {
+    if (monthFilteredInstallments.length === 0) {
+      return {
+        activeCount: 0,
+        completingThisMonthCount: 0,
+        totalRemainingArs: 0,
+        totalRemainingUsd: 0,
+      }
+    }
+
+    const activeInstallments = monthFilteredInstallments.filter((i) => i.status === 'active')
+    const completingInstallments = monthFilteredInstallments.filter((i) => i.status === 'completing')
+
+    return {
+      activeCount: activeInstallments.length,
+      completingThisMonthCount: completingInstallments.length,
+      totalRemainingArs: activeInstallments.reduce((sum, i) => sum + (i.remainingAmountArs || 0), 0),
+      totalRemainingUsd: activeInstallments.reduce((sum, i) => sum + (i.remainingAmountUsd || 0), 0),
+    }
+  }, [monthFilteredInstallments])
 
   const handleStatusChange = (status: 'all' | 'active' | 'completing') => {
     setSelectedStatus(status)
@@ -87,21 +112,39 @@ export default function InstallmentsPage() {
       )}
 
       <div className="rounded-lg border border-gray-200 bg-white">
-        <div className="border-b border-gray-100 px-4 py-3">
-          <h1 className="text-lg font-semibold text-gray-900">Installments</h1>
-          <p className="text-sm text-gray-500">
-            Track your ongoing payment commitments
-          </p>
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+          <div>
+            <h1 className="text-lg font-semibold text-gray-900">Installments</h1>
+            <p className="text-sm text-gray-500">
+              Track your ongoing payment commitments
+            </p>
+          </div>
+
+          {/* Month Filter */}
+          {availableMonths.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label htmlFor="month-filter" className="text-sm text-gray-500">
+                Month:
+              </label>
+              <select
+                id="month-filter"
+                value={selectedMonth}
+                onChange={(e) => handleMonthChange(e.target.value)}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                {availableMonths.map((month) => (
+                  <option key={month} value={month}>
+                    {formatMonth(month)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         <div className="p-4">
           <InstallmentsSummaryCards
-            summary={data?.summary || {
-              activeCount: 0,
-              completingThisMonthCount: 0,
-              totalRemainingArs: 0,
-              totalRemainingUsd: 0,
-            }}
+            summary={calculatedSummary}
             loading={loading}
           />
         </div>
@@ -113,32 +156,11 @@ export default function InstallmentsPage() {
         </div>
 
         <div className="p-4">
-          <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="mb-4">
             <InstallmentFilters
               selectedStatus={selectedStatus}
               onStatusChange={handleStatusChange}
             />
-
-            {/* Month Filter */}
-            {availableMonths.length > 0 && (
-              <div className="flex items-center gap-2">
-                <label htmlFor="month-filter" className="text-sm text-gray-500">
-                  Month:
-                </label>
-                <select
-                  id="month-filter"
-                  value={selectedMonth}
-                  onChange={(e) => handleMonthChange(e.target.value)}
-                  className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                >
-                  {availableMonths.map((month) => (
-                    <option key={month} value={month}>
-                      {formatMonth(month)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
           </div>
 
           {loading ? (
