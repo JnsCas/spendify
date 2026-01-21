@@ -264,7 +264,7 @@ export class ExpenseRepository {
       WHERE s.user_id = $1
         AND s.status = 'completed'
         AND e.total_installments > 1
-      ORDER BY e.description, e.total_installments, e.card_id, e.current_installment DESC
+      ORDER BY e.description, e.total_installments, e.card_id, e.current_installment DESC, s.statement_date DESC
       `,
       [userId],
     );
@@ -333,7 +333,7 @@ export class ExpenseRepository {
         WHERE s.user_id = $1
           AND s.status = 'completed'
           AND e.total_installments > 1
-        ORDER BY e.description, e.total_installments, e.card_id, e.current_installment DESC
+        ORDER BY e.description, e.total_installments, e.card_id, e.current_installment DESC, s.statement_date DESC
       )
       SELECT
         COUNT(*) FILTER (WHERE current_installment < total_installments) as "activeCount",
