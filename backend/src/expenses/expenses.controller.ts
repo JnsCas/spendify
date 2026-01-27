@@ -17,7 +17,16 @@ import {
   MonthExpensesResponseDto,
   MonthExpenseDto,
 } from './dto/month-expenses-response.dto';
-import { InstallmentsResponseDto } from './dto/installments-response.dto';
+import {
+  InstallmentsResponseDto,
+  InstallmentsSummaryDto,
+  InstallmentDetailDto,
+  InstallmentCardDto,
+} from './dto/installments-response.dto';
+import {
+  InstallmentDetail,
+  InstallmentsSummary,
+} from './expense.repository';
 
 @Controller('expenses')
 @UseGuards(JwtAuthGuard)
@@ -28,7 +37,17 @@ export class ExpensesController {
   async getInstallments(
     @CurrentUser() user: User,
   ): Promise<InstallmentsResponseDto> {
-    return this.expensesService.getInstallmentsByUser(user.id);
+    const { summary, installments } = await this.expensesService.findInstallmentsWithSummary(user.id);
+
+    return {
+      summary: {
+        activeCount: summary.activeCount,
+        completingThisMonthArs: summary.completingThisMonthArs,
+        totalRemainingUsd: summary.totalRemainingUsd,
+        totalMonthlyPaymentArs: summary.totalMonthlyPaymentArs,
+      },
+      installments: installments.map((i) => this.mapToInstallmentDto(i)),
+    };
   }
 
   @Get('by-month')
@@ -94,5 +113,33 @@ export class ExpensesController {
         : undefined,
     };
     return this.expensesService.update(id, data);
+  }
+
+  private mapToInstallmentDto(
+    installment: InstallmentDetail,
+  ): InstallmentDetailDto {
+    const card: InstallmentCardDto | null = installment.cardId
+      ? {
+          id: installment.cardId,
+          customName: installment.customName,
+          lastFourDigits: installment.lastFourDigits,
+        }
+      : null;
+
+    return {
+      id: installment.id,
+      description: installment.description,
+      purchaseDate: installment.purchaseDate,
+      currentInstallment: installment.currentInstallment,
+      totalInstallments: installment.totalInstallments,
+      monthlyAmountArs: installment.monthlyAmountArs,
+      monthlyAmountUsd: installment.monthlyAmountUsd,
+      remainingAmountArs: installment.remainingAmountArs,
+      remainingAmountUsd: installment.remainingAmountUsd,
+      remainingMonths: installment.remainingMonths,
+      card,
+      statementMonth: installment.statementMonth,
+      status: installment.status,
+    };
   }
 }

@@ -14,7 +14,7 @@ export interface InstallmentCard {
 export interface InstallmentDetail {
   id: string
   description: string
-  purchaseDate: Date | null
+  purchaseDate: string | null
   currentInstallment: number
   totalInstallments: number
   monthlyAmountArs: number | null

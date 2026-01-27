@@ -8,29 +8,157 @@ import { InstallmentsTable } from '@/components/installments/InstallmentsTable'
 import { InstallmentCard } from '@/components/installments/InstallmentCard'
 import { InstallmentFilters } from '@/components/installments/InstallmentFilters'
 
+function ErrorMessage({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      {message}
+    </div>
+  )
+}
+
+function formatMonth(monthStr: string): string {
+  const [year, month] = monthStr.split('-')
+  const date = new Date(parseInt(year), parseInt(month) - 1)
+  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+}
+
+function MonthFilter({
+  availableMonths,
+  selectedMonth,
+  onMonthChange,
+}: {
+  availableMonths: string[]
+  selectedMonth: string
+  onMonthChange: (month: string) => void
+}) {
+  if (availableMonths.length === 0) return null
+
+  return (
+    <div className="flex items-center gap-2">
+      <label htmlFor="month-filter" className="text-sm text-gray-500">
+        Month:
+      </label>
+      <select
+        id="month-filter"
+        value={selectedMonth}
+        onChange={(e) => onMonthChange(e.target.value)}
+        className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+      >
+        {availableMonths.map((month) => (
+          <option key={month} value={month}>
+            {formatMonth(month)}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
+function PageHeader({
+  availableMonths,
+  selectedMonth,
+  onMonthChange,
+}: {
+  availableMonths: string[]
+  selectedMonth: string
+  onMonthChange: (month: string) => void
+}) {
+  return (
+    <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+      <div>
+        <h1 className="text-lg font-semibold text-gray-900">Installments</h1>
+        <p className="text-sm text-gray-500">Track your ongoing payment commitments</p>
+      </div>
+      <MonthFilter
+        availableMonths={availableMonths}
+        selectedMonth={selectedMonth}
+        onMonthChange={onMonthChange}
+      />
+    </div>
+  )
+}
+
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 5 }, (_, i) => (
+        <div key={i} className="h-20 animate-pulse rounded-lg border border-gray-100 bg-gray-50" />
+      ))}
+    </div>
+  )
+}
+
+function EmptyState({
+  hasAnyInstallments,
+  selectedStatus,
+}: {
+  hasAnyInstallments: boolean
+  selectedStatus: 'all' | 'active' | 'completing'
+}) {
+  const getMessage = () => {
+    if (!hasAnyInstallments) return 'No installment purchases yet'
+    if (selectedStatus === 'all') return 'No installments for this month'
+    if (selectedStatus === 'active') return 'No active installments for this month'
+    return 'No installments completing this month'
+  }
+
+  const getSubMessage = () => {
+    if (!hasAnyInstallments) return 'Import statements with installment purchases to get started'
+    return 'Try selecting a different month'
+  }
+
+  return (
+    <div className="flex h-[200px] flex-col items-center justify-center rounded-lg border border-gray-100 bg-gray-50">
+      <div className="mb-2 rounded-full bg-gray-100 p-3">
+        <svg className="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+          />
+        </svg>
+      </div>
+      <p className="text-sm text-gray-500">{getMessage()}</p>
+      <p className="text-xs text-gray-400">{getSubMessage()}</p>
+    </div>
+  )
+}
+
+function InstallmentsList({ installments }: { installments: InstallmentDetail[] }) {
+  return (
+    <>
+      <div className="hidden md:block">
+        <InstallmentsTable installments={installments} />
+      </div>
+      <div className="space-y-3 md:hidden">
+        {installments.map((installment) => (
+          <InstallmentCard key={installment.id} installment={installment} />
+        ))}
+      </div>
+    </>
+  )
+}
+
 export default function InstallmentsPage() {
   const [data, setData] = useState<InstallmentsResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'active' | 'completing'>('all')
-
   const [selectedMonth, setSelectedMonth] = useState<string>('')
 
-  // Get unique months from installments for the month filter
   const availableMonths = useMemo(() => {
     if (!data?.installments) return []
     const months = new Set(data.installments.map((i) => i.statementMonth))
     return Array.from(months).sort().reverse()
   }, [data?.installments])
 
-  // Auto-select the most recent month when data loads
   useEffect(() => {
     if (availableMonths.length > 0 && !selectedMonth) {
       setSelectedMonth(availableMonths[0])
     }
   }, [availableMonths, selectedMonth])
 
-  // Fetch data once
   useEffect(() => {
     const fetchInstallments = async () => {
       setLoading(true)
@@ -48,25 +176,16 @@ export default function InstallmentsPage() {
     fetchInstallments()
   }, [])
 
-  // Filter installments by month (for the list view)
   const monthFilteredInstallments = useMemo(() => {
     if (!data?.installments || !selectedMonth) return []
-
-    return data.installments.filter((installment) => {
-      return installment.statementMonth === selectedMonth
-    })
+    return data.installments.filter((installment) => installment.statementMonth === selectedMonth)
   }, [data?.installments, selectedMonth])
 
-  // Further filter by status for the list view
   const filteredInstallments = useMemo(() => {
     if (selectedStatus === 'all') return monthFilteredInstallments
-
-    return monthFilteredInstallments.filter((installment) => {
-      return installment.status === selectedStatus
-    })
+    return monthFilteredInstallments.filter((installment) => installment.status === selectedStatus)
   }, [monthFilteredInstallments, selectedStatus])
 
-  // Calculate summary from month-filtered installments (not affected by status filter)
   const calculatedSummary = useMemo(() => {
     if (monthFilteredInstallments.length === 0) {
       return {
@@ -88,65 +207,19 @@ export default function InstallmentsPage() {
     }
   }, [monthFilteredInstallments])
 
-  const handleStatusChange = (status: 'all' | 'active' | 'completing') => {
-    setSelectedStatus(status)
-  }
-
-  const handleMonthChange = (month: string) => {
-    setSelectedMonth(month)
-  }
-
-  // Format month for display
-  const formatMonth = (monthStr: string) => {
-    const [year, month] = monthStr.split('-')
-    const date = new Date(parseInt(year), parseInt(month) - 1)
-    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-  }
-
   return (
     <div className="space-y-4">
-      {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <ErrorMessage message={error} />}
 
       <div className="rounded-lg border border-gray-200 bg-white">
-        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900">Installments</h1>
-            <p className="text-sm text-gray-500">
-              Track your ongoing payment commitments
-            </p>
-          </div>
-
-          {/* Month Filter */}
-          {availableMonths.length > 0 && (
-            <div className="flex items-center gap-2">
-              <label htmlFor="month-filter" className="text-sm text-gray-500">
-                Month:
-              </label>
-              <select
-                id="month-filter"
-                value={selectedMonth}
-                onChange={(e) => handleMonthChange(e.target.value)}
-                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                {availableMonths.map((month) => (
-                  <option key={month} value={month}>
-                    {formatMonth(month)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
+        <PageHeader
+          availableMonths={availableMonths}
+          selectedMonth={selectedMonth}
+          onMonthChange={setSelectedMonth}
+        />
 
         <div className="p-4">
-          <InstallmentsSummaryCards
-            summary={calculatedSummary}
-            loading={loading}
-          />
+          <InstallmentsSummaryCards summary={calculatedSummary} loading={loading} />
         </div>
       </div>
 
@@ -157,64 +230,18 @@ export default function InstallmentsPage() {
 
         <div className="p-4">
           <div className="mb-4">
-            <InstallmentFilters
-              selectedStatus={selectedStatus}
-              onStatusChange={handleStatusChange}
-            />
+            <InstallmentFilters selectedStatus={selectedStatus} onStatusChange={setSelectedStatus} />
           </div>
 
           {loading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 5 }, (_, i) => (
-                <div
-                  key={i}
-                  className="h-20 animate-pulse rounded-lg border border-gray-100 bg-gray-50"
-                />
-              ))}
-            </div>
+            <LoadingSkeleton />
           ) : filteredInstallments.length === 0 ? (
-            <div className="flex h-[200px] flex-col items-center justify-center rounded-lg border border-gray-100 bg-gray-50">
-              <div className="mb-2 rounded-full bg-gray-100 p-3">
-                <svg
-                  className="h-6 w-6 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
-              </div>
-              <p className="text-sm text-gray-500">
-                {data?.installments.length === 0
-                  ? 'No installment purchases yet'
-                  : selectedStatus === 'all'
-                  ? 'No installments for this month'
-                  : selectedStatus === 'active'
-                  ? 'No active installments for this month'
-                  : 'No installments completing this month'}
-              </p>
-              <p className="text-xs text-gray-400">
-                {data?.installments.length === 0
-                  ? 'Import statements with installment purchases to get started'
-                  : 'Try selecting a different month'}
-              </p>
-            </div>
+            <EmptyState
+              hasAnyInstallments={(data?.installments.length ?? 0) > 0}
+              selectedStatus={selectedStatus}
+            />
           ) : (
-            <>
-              <div className="hidden md:block">
-                <InstallmentsTable installments={filteredInstallments} />
-              </div>
-              <div className="space-y-3 md:hidden">
-                {filteredInstallments.map((installment) => (
-                  <InstallmentCard key={installment.id} installment={installment} />
-                ))}
-              </div>
-            </>
+            <InstallmentsList installments={filteredInstallments} />
           )}
         </div>
       </div>

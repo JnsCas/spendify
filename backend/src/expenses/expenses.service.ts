@@ -2,17 +2,10 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Expense } from './expense.entity';
 import {
   ExpenseRepository,
-  CreateExpenseData,
   MonthExpense,
   InstallmentDetail,
   InstallmentsSummary,
 } from './expense.repository';
-import {
-  InstallmentsResponseDto,
-  InstallmentsSummaryDto,
-  InstallmentDetailDto,
-  InstallmentCardDto,
-} from './dto/installments-response.dto';
 
 export interface CreateExpenseDto {
   statementId: string;
@@ -23,6 +16,11 @@ export interface CreateExpenseDto {
   currentInstallment?: number;
   totalInstallments?: number;
   purchaseDate?: Date;
+}
+
+export interface InstallmentsWithSummary {
+  summary: InstallmentsSummary;
+  installments: InstallmentDetail[];
 }
 
 @Injectable()
@@ -68,52 +66,15 @@ export class ExpensesService {
     return this.expenseRepository.findByUserAndMonth(userId, year, month);
   }
 
-  async getInstallmentsByUser(userId: string): Promise<InstallmentsResponseDto> {
+  async findInstallmentsWithSummary(userId: string): Promise<InstallmentsWithSummary> {
     const [installments, summary] = await Promise.all([
       this.expenseRepository.findAllInstallmentsByUser(userId),
       this.expenseRepository.getInstallmentsSummary(userId),
     ]);
 
     return {
-      summary: this.mapToSummaryDto(summary),
-      installments: installments.map((i) => this.mapToInstallmentDto(i)),
-    };
-  }
-
-  private mapToSummaryDto(summary: InstallmentsSummary): InstallmentsSummaryDto {
-    return {
-      activeCount: summary.activeCount,
-      completingThisMonthArs: summary.completingThisMonthArs,
-      totalRemainingUsd: summary.totalRemainingUsd,
-      totalMonthlyPaymentArs: summary.totalMonthlyPaymentArs,
-    };
-  }
-
-  private mapToInstallmentDto(
-    installment: InstallmentDetail,
-  ): InstallmentDetailDto {
-    const card: InstallmentCardDto | null = installment.cardId
-      ? {
-          id: installment.cardId,
-          customName: installment.customName,
-          lastFourDigits: installment.lastFourDigits,
-        }
-      : null;
-
-    return {
-      id: installment.id,
-      description: installment.description,
-      purchaseDate: installment.purchaseDate,
-      currentInstallment: installment.currentInstallment,
-      totalInstallments: installment.totalInstallments,
-      monthlyAmountArs: installment.monthlyAmountArs,
-      monthlyAmountUsd: installment.monthlyAmountUsd,
-      remainingAmountArs: installment.remainingAmountArs,
-      remainingAmountUsd: installment.remainingAmountUsd,
-      remainingMonths: installment.remainingMonths,
-      card,
-      statementMonth: installment.statementMonth,
-      status: installment.status,
+      summary,
+      installments,
     };
   }
 }
