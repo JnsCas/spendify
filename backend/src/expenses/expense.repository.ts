@@ -237,13 +237,13 @@ export class ExpenseRepository {
     }));
   }
 
+  /**
+   * Return all installment expense entries from statements
+   * Each installment occurrence (e.g., 1/3, 2/3, 3/3) is a separate entry with its statement month
+   * @param userId 
+   * @returns All installment expense entries from statements with their statement month
+   */
   async findAllInstallmentEntriesByUser(userId: string): Promise<InstallmentDetail[]> {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-
-    // Return all installment expense entries from statements
-    // Each installment occurrence (e.g., 1/3, 2/3, 3/3) is a separate entry with its statement month
     const result = await this.repository.query(
       `
       SELECT
