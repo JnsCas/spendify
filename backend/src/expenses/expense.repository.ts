@@ -237,16 +237,16 @@ export class ExpenseRepository {
     }));
   }
 
-  async findAllInstallmentsByUser(userId: string): Promise<InstallmentDetail[]> {
+  async findAllInstallmentEntriesByUser(userId: string): Promise<InstallmentDetail[]> {
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
 
-    // Use raw query with DISTINCT ON to get only the latest installment per series
-    // A series is identified by: description + total_installments + card_id
+    // Return all installment expense entries from statements
+    // Each installment occurrence (e.g., 1/3, 2/3, 3/3) is a separate entry with its statement month
     const result = await this.repository.query(
       `
-      SELECT DISTINCT ON (e.description, e.total_installments, e.card_id)
+      SELECT
         e.id as "id",
         e.description as "description",
         e.purchase_date as "purchaseDate",
@@ -264,7 +264,7 @@ export class ExpenseRepository {
       WHERE s.user_id = $1
         AND s.status = 'completed'
         AND e.total_installments > 1
-      ORDER BY e.description, e.total_installments, e.card_id, e.current_installment DESC, s.statement_date DESC
+      ORDER BY s.statement_date DESC, e.current_installment DESC
       `,
       [userId],
     );

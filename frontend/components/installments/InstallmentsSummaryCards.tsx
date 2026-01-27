@@ -107,10 +107,10 @@ const WalletIcon = () => (
   </svg>
 )
 
-function ActiveInstallmentsCard({ count }: { count: number }) {
+function TotalInstallmentsCard({ count }: { count: number }) {
   return (
     <SummaryCard
-      label="Active Installments"
+      label="Total Installments"
       value={count}
       icon={<ClipboardIcon />}
       variant="default"
@@ -167,7 +167,7 @@ export function InstallmentsSummaryCards({ summary, loading }: InstallmentsSumma
 
   return (
     <div className="grid gap-4 md:grid-cols-4">
-      <ActiveInstallmentsCard count={summary.activeCount} />
+      <TotalInstallmentsCard count={summary.activeCount} />
       <CompletingThisMonthCard amount={summary.completingThisMonthArs} />
       <TotalRemainingUsdCard amount={summary.totalRemainingUsd} />
       <TotalMonthlyPaymentCard amount={summary.totalMonthlyPaymentArs} />

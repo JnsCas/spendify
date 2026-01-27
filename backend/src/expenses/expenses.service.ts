@@ -68,7 +68,7 @@ export class ExpensesService {
 
   async findInstallmentsWithSummary(userId: string): Promise<InstallmentsWithSummary> {
     const [installments, summary] = await Promise.all([
-      this.expenseRepository.findAllInstallmentsByUser(userId),
+      this.expenseRepository.findAllInstallmentEntriesByUser(userId),
       this.expenseRepository.getInstallmentsSummary(userId),
     ]);
 

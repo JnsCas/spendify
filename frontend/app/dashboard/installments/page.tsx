@@ -200,7 +200,7 @@ export default function InstallmentsPage() {
     const completingInstallments = monthFilteredInstallments.filter((i) => i.status === 'completing')
 
     return {
-      activeCount: activeInstallments.length,
+      activeCount: monthFilteredInstallments.length, // Total includes both active and completing
       completingThisMonthArs: completingInstallments.reduce((sum, i) => sum + (i.monthlyAmountArs || 0), 0),
       totalRemainingUsd: activeInstallments.reduce((sum, i) => sum + (i.remainingAmountUsd || 0), 0),
       totalMonthlyPaymentArs: activeInstallments.reduce((sum, i) => sum + (i.monthlyAmountArs || 0), 0),
