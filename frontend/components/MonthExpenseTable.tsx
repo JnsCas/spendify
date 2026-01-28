@@ -266,7 +266,7 @@ export default function MonthExpenseTable({ expenses }: MonthExpenseTableProps) 
                 </td>
                 <td className="px-4 py-3">
                   <Link
-                    href={`/dashboard/statements/${expense.statement.id}`}
+                    href={`/statements/${expense.statement.id}`}
                     className="inline-flex items-center gap-1.5 text-sm text-blue-600 transition-colors hover:text-blue-800 hover:underline"
                   >
                     <DocumentIcon className="h-4 w-4" />
