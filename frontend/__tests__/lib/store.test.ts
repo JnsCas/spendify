@@ -32,6 +32,7 @@ describe('Auth Store', () => {
         id: '123',
         email: 'test@example.com',
         name: 'Test User',
+        language: 'en',
       }
 
       act(() => {
@@ -48,7 +49,7 @@ describe('Auth Store', () => {
 
       act(() => {
         result.current.setAuth(
-          { id: '1', email: 'test@test.com', name: 'Test' },
+          { id: '1', email: 'test@test.com', name: 'Test', language: 'en' },
           'token'
         )
         result.current.setIsAdmin(true)
@@ -86,7 +87,7 @@ describe('Auth Store', () => {
   describe('State Persistence', () => {
     it('should persist auth state to localStorage', () => {
       const { result } = renderHook(() => useAuthStore())
-      const mockUser = { id: '1', email: 'test@test.com', name: 'Test' }
+      const mockUser = { id: '1', email: 'test@test.com', name: 'Test', language: 'en' }
 
       act(() => {
         result.current.setAuth(mockUser, 'token-123')

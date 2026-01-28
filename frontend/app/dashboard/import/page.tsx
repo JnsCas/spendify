@@ -2,9 +2,11 @@
 
 import { useRouter } from 'next/navigation'
 import BulkFileUpload from '@/components/BulkFileUpload'
+import { useTranslations } from '@/lib/i18n'
 
 export default function ImportPage() {
   const router = useRouter()
+  const t = useTranslations()
 
   const handleComplete = () => {
     router.push('/dashboard')
@@ -16,10 +18,10 @@ export default function ImportPage() {
       <div className="rounded-lg border border-gray-200 bg-white">
         <div className="border-b border-gray-100 px-6 py-4">
           <h1 className="text-lg font-semibold text-gray-900">
-            Import Statements
+            {t('import.importStatements')}
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Upload multiple credit card statement PDFs at once
+            {t('import.uploadMultiple')}
           </p>
         </div>
 
@@ -31,7 +33,7 @@ export default function ImportPage() {
       {/* How it works */}
       <div className="rounded-lg border border-gray-200 bg-white">
         <div className="border-b border-gray-100 px-4 py-3">
-          <h3 className="text-sm font-medium text-gray-900">How it works</h3>
+          <h3 className="text-sm font-medium text-gray-900">{t('import.howItWorks')}</h3>
         </div>
         <div className="p-4">
           <ol className="space-y-3">
@@ -40,7 +42,7 @@ export default function ImportPage() {
                 1
               </span>
               <span className="text-sm text-gray-600">
-                Select or drag and drop your PDF statement files
+                {t('import.step1')}
               </span>
             </li>
             <li className="flex items-start gap-3">
@@ -48,7 +50,7 @@ export default function ImportPage() {
                 2
               </span>
               <span className="text-sm text-gray-600">
-                Click "Start Import" to begin processing
+                {t('import.step2')}
               </span>
             </li>
             <li className="flex items-start gap-3">
@@ -56,7 +58,7 @@ export default function ImportPage() {
                 3
               </span>
               <span className="text-sm text-gray-600">
-                Each file is processed in parallel - watch the progress bars
+                {t('import.step3')}
               </span>
             </li>
             <li className="flex items-start gap-3">
@@ -64,7 +66,7 @@ export default function ImportPage() {
                 4
               </span>
               <span className="text-sm text-gray-600">
-                Statement dates are automatically detected from PDF content
+                {t('import.step4')}
               </span>
             </li>
           </ol>

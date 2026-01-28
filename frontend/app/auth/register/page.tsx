@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { authApi } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
+import { useTranslations } from '@/lib/i18n'
 
 export default function RegisterPage() {
   const router = useRouter()
   const setAuth = useAuthStore((state) => state.setAuth)
+  const t = useTranslations()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -35,7 +37,7 @@ export default function RegisterPage() {
   return (
     <main className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center mb-8">Register</h1>
+        <h1 className="text-3xl font-bold text-center mb-8">{t('auth.register')}</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
@@ -45,33 +47,36 @@ export default function RegisterPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-1">Name</label>
+            <label className="block text-sm font-medium mb-1">{t('auth.name')}</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              placeholder={t('auth.namePlaceholder')}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
+            <label className="block text-sm font-medium mb-1">{t('auth.email')}</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder={t('auth.emailPlaceholder')}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
+            <label className="block text-sm font-medium mb-1">{t('auth.password')}</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder={t('auth.passwordPlaceholder')}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               minLength={6}
               required
@@ -79,11 +84,12 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Invite Code</label>
+            <label className="block text-sm font-medium mb-1">{t('auth.inviteCode')}</label>
             <input
               type="text"
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value)}
+              placeholder={t('auth.inviteCodePlaceholder')}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
@@ -94,14 +100,14 @@ export default function RegisterPage() {
             disabled={loading}
             className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
           >
-            {loading ? 'Loading...' : 'Register'}
+            {loading ? t('common.loading') : t('auth.registerButton')}
           </button>
         </form>
 
         <p className="text-center mt-4 text-gray-600">
-          Already have an account?{' '}
+          {t('auth.hasAccount')}{' '}
           <Link href="/auth/login" className="text-blue-600 hover:underline">
-            Login
+            {t('auth.loginLink')}
           </Link>
         </p>
       </div>

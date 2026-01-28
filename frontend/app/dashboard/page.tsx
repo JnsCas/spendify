@@ -16,11 +16,13 @@ import {
   EndMonth,
   CompletingInstallmentsResponse,
 } from '@/lib/types/dashboard'
+import { useTranslations } from '@/lib/i18n'
 
 const POLL_INTERVAL = 10000 // 10 seconds
 
 export default function DashboardPage() {
   const router = useRouter()
+  const t = useTranslations()
 
   // Initialize with current month as end month
   const now = new Date()
@@ -167,8 +169,10 @@ export default function DashboardPage() {
                 strokeWidth={3}
               />
               <span className="text-sm font-medium text-blue-700">
-                Processing {processingCount} file
-                {processingCount > 1 ? 's' : ''}...
+                {t('dashboard.processing', {
+                  count: processingCount.toString(),
+                  s: processingCount > 1 ? 's' : '',
+                })}
               </span>
             </div>
           </div>
@@ -201,7 +205,7 @@ export default function DashboardPage() {
       <div className="rounded-lg border border-gray-200 bg-white">
         <div className="border-b border-gray-100 px-4 py-3">
           <h2 className="text-lg font-semibold text-gray-900">
-            Monthly Statements
+            {t('dashboard.monthlyStatements')}
           </h2>
         </div>
         <div className="p-4">

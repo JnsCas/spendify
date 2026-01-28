@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useTranslations, useLocale } from '@/lib/i18n'
+import { formatCurrency } from '@/lib/format'
 
 interface Expense {
   id: string
@@ -25,6 +27,8 @@ type SortField = 'description' | 'amountArs' | 'amountUsd' | 'card'
 type SortDirection = 'asc' | 'desc'
 
 export default function ExpenseTable({ expenses }: ExpenseTableProps) {
+  const t = useTranslations()
+  const locale = useLocale()
   const [sortField, setSortField] = useState<SortField>('description')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [filterCard, setFilterCard] = useState<string>('')
@@ -43,10 +47,10 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
     })
     const cardEntries = Array.from(uniqueCards.entries())
     if (hasNoCard) {
-      cardEntries.push(['no-card', 'No Card (Taxes/Fees)'])
+      cardEntries.push(['no-card', t('expenses.noCard')])
     }
     return cardEntries
-  }, [expenses])
+  }, [expenses, t])
 
   const sortedExpenses = useMemo(() => {
     let filtered = [...expenses]
@@ -119,7 +123,7 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
       <div className="flex flex-wrap items-center gap-3">
         <input
           type="text"
-          placeholder="Search expenses..."
+          placeholder={t('expenses.searchPlaceholder')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="rounded-lg border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-blue-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
@@ -136,7 +140,7 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
                   : 'bg-gray-50 text-gray-600 ring-gray-200 hover:bg-gray-100'
               }`}
             >
-              All
+              {t('expenses.all')}
             </button>
             {cards.map(([id, label]) => (
               <button
@@ -164,7 +168,7 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
                 className="cursor-pointer px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 transition-colors hover:bg-gray-100"
                 onClick={() => handleSort('description')}
               >
-                Description <SortIcon field="description" />
+                {t('expenses.description')} <SortIcon field="description" />
               </th>
               <th
                 className="cursor-pointer px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500 transition-colors hover:bg-gray-100"
@@ -179,13 +183,13 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
                 USD <SortIcon field="amountUsd" />
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500">
-                Installments
+                {t('dashboard.installments')}
               </th>
               <th
                 className="cursor-pointer px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 transition-colors hover:bg-gray-100"
                 onClick={() => handleSort('card')}
               >
-                Card <SortIcon field="card" />
+                {t('expenses.card')} <SortIcon field="card" />
               </th>
             </tr>
           </thead>
@@ -197,12 +201,12 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
                 </td>
                 <td className="px-4 py-3 text-right font-mono text-sm text-blue-600">
                   {expense.amountArs
-                    ? `$${Number(expense.amountArs).toLocaleString()}`
+                    ? formatCurrency(Number(expense.amountArs), 'ARS', locale)
                     : <span className="text-gray-300">-</span>}
                 </td>
                 <td className="px-4 py-3 text-right font-mono text-sm text-emerald-600">
                   {expense.amountUsd
-                    ? `US$${Number(expense.amountUsd).toLocaleString()}`
+                    ? formatCurrency(Number(expense.amountUsd), 'USD', locale)
                     : <span className="text-gray-300">-</span>}
                 </td>
                 <td className="px-4 py-3 text-center">
@@ -227,7 +231,7 @@ export default function ExpenseTable({ expenses }: ExpenseTableProps) {
 
       {/* Footer */}
       <p className="text-xs text-gray-400">
-        Showing {sortedExpenses.length} of {expenses.length} expenses
+        {t('expenses.showing', { count: sortedExpenses.length, total: expenses.length })}
       </p>
     </div>
   )

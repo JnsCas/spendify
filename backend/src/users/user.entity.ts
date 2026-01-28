@@ -23,6 +23,9 @@ export class User {
   @Column()
   name: string;
 
+  @Column({ default: 'en', length: 5 })
+  language: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

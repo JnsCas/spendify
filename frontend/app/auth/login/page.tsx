@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { authApi } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
+import { useTranslations } from '@/lib/i18n'
 
 export default function LoginPage() {
   const router = useRouter()
   const setAuth = useAuthStore((state) => state.setAuth)
+  const t = useTranslations()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -33,7 +35,7 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center mb-8">Login</h1>
+        <h1 className="text-3xl font-bold text-center mb-8">{t('auth.login')}</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
@@ -43,22 +45,24 @@ export default function LoginPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
+            <label className="block text-sm font-medium mb-1">{t('auth.email')}</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder={t('auth.emailPlaceholder')}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
+            <label className="block text-sm font-medium mb-1">{t('auth.password')}</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              placeholder={t('auth.passwordPlaceholder')}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
@@ -69,14 +73,14 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
           >
-            {loading ? 'Loading...' : 'Login'}
+            {loading ? t('common.loading') : t('auth.loginButton')}
           </button>
         </form>
 
         <p className="text-center mt-4 text-gray-600">
-          Don&apos;t have an account?{' '}
+          {t('auth.noAccount')}{' '}
           <Link href="/auth/register" className="text-blue-600 hover:underline">
-            Register
+            {t('auth.registerLink')}
           </Link>
         </p>
       </div>

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { User } from './user.entity';
 import { UserRepository } from './user.repository';
@@ -26,5 +26,18 @@ export class UsersService {
 
   async validatePassword(user: User, password: string): Promise<boolean> {
     return bcrypt.compare(password, user.passwordHash);
+  }
+
+  async getProfile(userId: string): Promise<User> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
+
+  async updateProfile(userId: string, updates: Partial<User>): Promise<User> {
+    const user = await this.getProfile(userId);
+    return this.userRepository.update(user.id, updates);
   }
 }

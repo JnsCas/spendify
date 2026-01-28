@@ -12,6 +12,7 @@ import {
   Bars3Icon,
   XMarkIcon,
   SparklesIcon,
+  UserCircleIcon,
 } from '@heroicons/react/24/outline'
 import {
   HomeIcon as HomeIconSolid,
@@ -19,6 +20,7 @@ import {
   CreditCardIcon as CreditCardSolid,
   Cog6ToothIcon as Cog6ToothSolid,
 } from '@heroicons/react/24/solid'
+import { useTranslations } from '@/lib/i18n'
 
 interface NavigatorProps {
   userName?: string
@@ -44,30 +46,32 @@ export function Navigator({
 }: NavigatorProps) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const t = useTranslations()
 
   const navItems: NavItem[] = [
     {
       href: '/dashboard',
-      label: 'Dashboard',
+      label: t('nav.dashboard'),
       icon: HomeIcon,
       activeIcon: HomeIconSolid,
     },
     {
       href: '/dashboard/import',
-      label: isFirstTimeUser ? 'Start Here' : 'Import',
+      label: isFirstTimeUser ? t('nav.startHere') : t('nav.import'),
       icon: ArrowUpTrayIcon,
       activeIcon: ArrowUpTraySolid,
       highlight: isFirstTimeUser,
     },
     {
       href: '/dashboard/cards',
-      label: 'Cards',
+      label: t('nav.cards'),
       icon: CreditCardIcon,
       activeIcon: CreditCardSolid,
     },
     {
       href: '/dashboard/admin',
-      label: 'Admin',
+      label: t('nav.admin'),
       icon: Cog6ToothIcon,
       activeIcon: Cog6ToothSolid,
       adminOnly: true,
@@ -168,20 +172,43 @@ export function Navigator({
               </div>
             )}
             <div className="h-6 w-px bg-gray-200" />
-            <button
-              onClick={onLogout}
-              className="group flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-500 transition-all duration-200 hover:bg-red-50 hover:text-red-600"
-            >
-              <ArrowRightOnRectangleIcon className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-0.5" />
-              <span>Logout</span>
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="group flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-500 transition-all duration-200 hover:bg-gray-100"
+              >
+                <Bars3Icon className="h-5 w-5" />
+              </button>
+              {userMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-gray-200 bg-white shadow-lg">
+                  <Link
+                    href="/dashboard/profile"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="flex items-center gap-2 rounded-t-lg px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                  >
+                    <UserCircleIcon className="h-5 w-5 text-gray-400" />
+                    <span>{t('nav.profile')}</span>
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false)
+                      onLogout()
+                    }}
+                    className="flex w-full items-center gap-2 rounded-b-lg px-4 py-2.5 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                  >
+                    <ArrowRightOnRectangleIcon className="h-5 w-5" />
+                    <span>{t('common.logout')}</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 md:hidden"
-            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+            aria-label={mobileMenuOpen ? t('common.closeMenu') : t('common.openMenu')}
           >
             {mobileMenuOpen ? (
               <XMarkIcon className="h-6 w-6" />
@@ -252,10 +279,18 @@ export function Navigator({
                     <p className="text-sm font-medium text-gray-900">
                       {userName}
                     </p>
-                    <p className="text-xs text-gray-500">Logged in</p>
+                    <p className="text-xs text-gray-500">{t('common.loggedIn')}</p>
                   </div>
                 </div>
               )}
+              <Link
+                href="/dashboard/profile"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              >
+                <UserCircleIcon className="h-5 w-5" />
+                <span>{t('nav.profile')}</span>
+              </Link>
               <button
                 onClick={() => {
                   setMobileMenuOpen(false)
@@ -264,7 +299,7 @@ export function Navigator({
                 className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
               >
                 <ArrowRightOnRectangleIcon className="h-5 w-5" />
-                <span>Logout</span>
+                <span>{t('common.logout')}</span>
               </button>
             </div>
           </div>

@@ -1,28 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import {
-  CompletingInstallmentsResponse,
-  MONTH_NAMES,
-} from '@/lib/types/dashboard'
+import { CompletingInstallmentsResponse } from '@/lib/types/dashboard'
+import { useTranslations, useLocale, useMonthNames } from '@/lib/i18n'
+import { formatCurrency } from '@/lib/format'
 
 interface CompletingInstallmentsCardProps {
   data: CompletingInstallmentsResponse | null
   loading: boolean
 }
 
-const formatCurrency = (amount: number, currency: 'ARS' | 'USD'): string => {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount)
-}
-
-const formatStatementMonth = (monthString: string): string => {
+const formatStatementMonth = (monthString: string, monthNames: string[]): string => {
   const [year, month] = monthString.split('-').map(Number)
-  return `${MONTH_NAMES[month - 1]} ${year}`
+  return `${monthNames[month - 1]} ${year}`
 }
 
 function ChevronIcon({ expanded }: { expanded: boolean }) {
@@ -50,6 +40,9 @@ export function CompletingInstallmentsCard({
   loading,
 }: CompletingInstallmentsCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const t = useTranslations()
+  const locale = useLocale()
+  const monthNames = useMonthNames()
 
   if (loading) {
     return (
@@ -101,7 +94,7 @@ export function CompletingInstallmentsCard({
             </span>
           </div>
           <span className="text-sm text-gray-500">
-            {formatStatementMonth(data.statementMonth)}
+            {formatStatementMonth(data.statementMonth, monthNames)}
           </span>
         </div>
         <div className="flex items-center gap-3">
@@ -110,18 +103,18 @@ export function CompletingInstallmentsCard({
               <>
                 {data.totalArs > 0 && (
                   <span className="text-sm font-semibold text-blue-600">
-                    {formatCurrency(data.totalArs, 'ARS')}
+                    {formatCurrency(data.totalArs, 'ARS', locale)}
                   </span>
                 )}
                 {data.totalUsd > 0 && (
                   <span className="text-sm font-semibold text-emerald-600">
-                    {formatCurrency(data.totalUsd, 'USD')}
+                    {formatCurrency(data.totalUsd, 'USD', locale)}
                   </span>
                 )}
               </>
             ) : (
               <span className="text-sm font-semibold text-gray-400">
-                {formatCurrency(0, 'ARS')}
+                {formatCurrency(0, 'ARS', locale)}
               </span>
             )}
           </div>
@@ -163,12 +156,12 @@ export function CompletingInstallmentsCard({
                         <div className="text-right">
                           {hasArs && (
                             <p className="text-sm font-medium text-blue-600">
-                              {formatCurrency(installment.amountArs!, 'ARS')}
+                              {formatCurrency(installment.amountArs!, 'ARS', locale)}
                             </p>
                           )}
                           {hasUsd && (
                             <p className="text-sm font-medium text-emerald-600">
-                              {formatCurrency(installment.amountUsd!, 'USD')}
+                              {formatCurrency(installment.amountUsd!, 'USD', locale)}
                             </p>
                           )}
                         </div>

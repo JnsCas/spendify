@@ -1,12 +1,8 @@
 'use client'
 
 import { useMemo } from 'react'
-
-// Format date string (YYYY-MM-DD) without timezone conversion issues
-function formatDateString(dateStr: string): string {
-  const [year, month, day] = dateStr.split('T')[0].split('-').map(Number)
-  return new Date(year, month - 1, day).toLocaleDateString()
-}
+import { useTranslations, useLocale } from '@/lib/i18n'
+import { formatCurrency, formatDate } from '@/lib/format'
 
 interface Expense {
   amountArs: number | null
@@ -29,6 +25,9 @@ export default function StatementSummary({
   statementDate,
   expenses,
 }: StatementSummaryProps) {
+  const t = useTranslations()
+  const locale = useLocale()
+
   const installmentSubtotals = useMemo(() => {
     const installmentExpenses = expenses.filter(
       (e) => e.totalInstallments && e.totalInstallments > 1
@@ -51,35 +50,35 @@ export default function StatementSummary({
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-4">
         <h3 className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          Total ARS
+          {t('dashboard.totalArs')}
         </h3>
         <p className="mt-1 text-xl font-semibold text-blue-600">
-          {totalArs ? `$${Number(totalArs).toLocaleString()}` : '-'}
+          {totalArs ? formatCurrency(Number(totalArs), 'ARS', locale) : '-'}
         </p>
       </div>
 
       <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-4">
         <h3 className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          Total USD
+          {t('dashboard.totalUsd')}
         </h3>
         <p className="mt-1 text-xl font-semibold text-emerald-600">
-          {totalUsd ? `US$${Number(totalUsd).toLocaleString()}` : '-'}
+          {totalUsd ? formatCurrency(Number(totalUsd), 'USD', locale) : '-'}
         </p>
       </div>
 
       <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-4">
         <h3 className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          Installments
+          {t('dashboard.installments')}
         </h3>
         <div className="mt-1">
           {installmentSubtotals.ars > 0 && (
             <p className="text-sm font-medium text-blue-600">
-              ${installmentSubtotals.ars.toLocaleString()}
+              {formatCurrency(installmentSubtotals.ars, 'ARS', locale)}
             </p>
           )}
           {installmentSubtotals.usd > 0 && (
             <p className="text-sm font-medium text-emerald-600">
-              US${installmentSubtotals.usd.toLocaleString()}
+              {formatCurrency(installmentSubtotals.usd, 'USD', locale)}
             </p>
           )}
           {installmentSubtotals.count === 0 && (
@@ -87,20 +86,20 @@ export default function StatementSummary({
           )}
         </div>
         <p className="mt-1 text-xs text-gray-400">
-          {installmentSubtotals.count} purchases
+          {installmentSubtotals.count} {t('expenses.purchases')}
         </p>
       </div>
 
       <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-4">
         <h3 className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          Due Date
+          {t('expenses.dueDate')}
         </h3>
         <p className="mt-1 text-xl font-semibold text-gray-900">
-          {dueDate ? formatDateString(dueDate) : '-'}
+          {dueDate ? formatDate(dueDate, locale) : '-'}
         </p>
         {statementDate && (
           <p className="mt-1 text-xs text-gray-400">
-            Statement: {formatDateString(statementDate)}
+            {t('expenses.statement')}: {formatDate(statementDate, locale)}
           </p>
         )}
       </div>
