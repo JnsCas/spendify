@@ -44,7 +44,7 @@ export default function MonthDetailPage() {
   }, [year, month])
 
   const handleStatementClick = (id: string) => {
-    router.push(`/dashboard/statements/${id}`)
+    router.push(`/statements/${id}`)
   }
 
   const handleExport = () => {
