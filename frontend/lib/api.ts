@@ -7,6 +7,7 @@ import type {
 import type { Card, UpdateCardDto } from './types/card'
 import type { CompletingInstallmentsResponse } from './types/dashboard'
 import type { MonthExpensesResponse } from './types/expense'
+import type { InstallmentsResponse } from './types/installments'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
@@ -119,6 +120,14 @@ export const expensesApi = {
   },
   exportCsvByMonth: (year: number, month: number) => {
     return `${API_URL}/api/expenses/export/by-month?year=${year}&month=${month}`
+  },
+}
+
+// Installments API
+export const installmentsApi = {
+  getAll: async (): Promise<InstallmentsResponse> => {
+    const { data } = await api.get('/expenses/installments')
+    return data
   },
 }
 

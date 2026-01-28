@@ -7,6 +7,7 @@ import {
   HomeIcon,
   ArrowUpTrayIcon,
   CreditCardIcon,
+  BanknotesIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   Bars3Icon,
@@ -17,6 +18,7 @@ import {
   HomeIcon as HomeIconSolid,
   ArrowUpTrayIcon as ArrowUpTraySolid,
   CreditCardIcon as CreditCardSolid,
+  BanknotesIcon as BanknotesSolid,
   Cog6ToothIcon as Cog6ToothSolid,
 } from '@heroicons/react/24/solid'
 
@@ -64,6 +66,12 @@ export function Navigator({
       label: 'Cards',
       icon: CreditCardIcon,
       activeIcon: CreditCardSolid,
+    },
+    {
+      href: '/dashboard/installments',
+      label: 'Installments',
+      icon: BanknotesIcon,
+      activeIcon: BanknotesSolid,
     },
     {
       href: '/dashboard/admin',
