@@ -7,17 +7,18 @@ import {
   HomeIcon,
   ArrowUpTrayIcon,
   CreditCardIcon,
+  BanknotesIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
   SparklesIcon,
-  UserCircleIcon,
 } from '@heroicons/react/24/outline'
 import {
   HomeIcon as HomeIconSolid,
   ArrowUpTrayIcon as ArrowUpTraySolid,
   CreditCardIcon as CreditCardSolid,
+  BanknotesIcon as BanknotesSolid,
   Cog6ToothIcon as Cog6ToothSolid,
 } from '@heroicons/react/24/solid'
 import { useTranslations } from '@/lib/i18n'
@@ -46,7 +47,6 @@ export function Navigator({
 }: NavigatorProps) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const t = useTranslations()
 
   const navItems: NavItem[] = [
@@ -57,20 +57,26 @@ export function Navigator({
       activeIcon: HomeIconSolid,
     },
     {
-      href: '/dashboard/import',
+      href: '/import',
       label: isFirstTimeUser ? t('nav.startHere') : t('nav.import'),
       icon: ArrowUpTrayIcon,
       activeIcon: ArrowUpTraySolid,
       highlight: isFirstTimeUser,
     },
     {
-      href: '/dashboard/cards',
+      href: '/cards',
       label: t('nav.cards'),
       icon: CreditCardIcon,
       activeIcon: CreditCardSolid,
     },
     {
-      href: '/dashboard/admin',
+      href: '/installments',
+      label: t('nav.installments'),
+      icon: BanknotesIcon,
+      activeIcon: BanknotesSolid,
+    },
+    {
+      href: '/admin',
       label: t('nav.admin'),
       icon: Cog6ToothIcon,
       activeIcon: Cog6ToothSolid,
@@ -172,36 +178,13 @@ export function Navigator({
               </div>
             )}
             <div className="h-6 w-px bg-gray-200" />
-            <div className="relative">
-              <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="group flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-500 transition-all duration-200 hover:bg-gray-100"
-              >
-                <Bars3Icon className="h-5 w-5" />
-              </button>
-              {userMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-gray-200 bg-white shadow-lg">
-                  <Link
-                    href="/dashboard/profile"
-                    onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-2 rounded-t-lg px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                  >
-                    <UserCircleIcon className="h-5 w-5 text-gray-400" />
-                    <span>{t('nav.profile')}</span>
-                  </Link>
-                  <button
-                    onClick={() => {
-                      setUserMenuOpen(false)
-                      onLogout()
-                    }}
-                    className="flex w-full items-center gap-2 rounded-b-lg px-4 py-2.5 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
-                  >
-                    <ArrowRightOnRectangleIcon className="h-5 w-5" />
-                    <span>{t('common.logout')}</span>
-                  </button>
-                </div>
-              )}
-            </div>
+            <button
+              onClick={onLogout}
+              className="group flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-500 transition-all duration-200 hover:bg-red-50 hover:text-red-600"
+            >
+              <ArrowRightOnRectangleIcon className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-0.5" />
+              <span>{t('common.logout')}</span>
+            </button>
           </div>
 
           {/* Mobile Menu Button */}
@@ -283,14 +266,6 @@ export function Navigator({
                   </div>
                 </div>
               )}
-              <Link
-                href="/dashboard/profile"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-              >
-                <UserCircleIcon className="h-5 w-5" />
-                <span>{t('nav.profile')}</span>
-              </Link>
               <button
                 onClick={() => {
                   setMobileMenuOpen(false)

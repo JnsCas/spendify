@@ -2,8 +2,9 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Expense } from './expense.entity';
 import {
   ExpenseRepository,
-  CreateExpenseData,
   MonthExpense,
+  InstallmentDetail,
+  InstallmentsSummary,
 } from './expense.repository';
 
 export interface CreateExpenseDto {
@@ -15,6 +16,11 @@ export interface CreateExpenseDto {
   currentInstallment?: number;
   totalInstallments?: number;
   purchaseDate?: Date;
+}
+
+export interface InstallmentsWithSummary {
+  summary: InstallmentsSummary;
+  installments: InstallmentDetail[];
 }
 
 @Injectable()
@@ -58,5 +64,17 @@ export class ExpensesService {
     month: number,
   ): Promise<MonthExpense[]> {
     return this.expenseRepository.findByUserAndMonth(userId, year, month);
+  }
+
+  async findInstallmentsWithSummary(userId: string): Promise<InstallmentsWithSummary> {
+    const [installments, summary] = await Promise.all([
+      this.expenseRepository.findAllInstallmentEntriesByUser(userId),
+      this.expenseRepository.getInstallmentsSummary(userId),
+    ]);
+
+    return {
+      summary,
+      installments,
+    };
   }
 }

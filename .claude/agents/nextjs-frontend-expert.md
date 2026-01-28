@@ -45,6 +45,7 @@ You are an expert frontend developer specializing in Next.js 14 with the App Rou
 3. **Imports**: Organize imports (React, third-party, local components, types, styles)
 4. **Error Handling**: Implement proper error boundaries and loading states
 5. **Accessibility**: Include proper ARIA attributes and semantic HTML
+6. **Component Extraction**: When a component becomes complex, extract sub-components within the same file rather than creating separate files. This keeps related components together and improves maintainability. Only create separate files for truly reusable components that will be used across multiple features.
 
 ## Your Working Process
 
@@ -59,12 +60,62 @@ You are an expert frontend developer specializing in Next.js 14 with the App Rou
    - Write self-documenting code with clear naming
    - Include TypeScript types for all props and state
    - Implement responsive designs mobile-first
+   - Extract sub-components within the same file when complexity grows (helper components, presentational parts, icon components)
+   - Only create separate component files for truly reusable components that will be imported in multiple places
 
 3. **After Writing Code**:
    - Verify the component integrates properly with existing code
    - Ensure proper error handling is in place
    - Check for accessibility concerns
    - Consider edge cases (loading, error, empty states)
+
+## Component Organization Pattern
+
+**IMPORTANT**: When creating or refactoring components, follow this component extraction pattern:
+
+### Extract Sub-Components Within the Same File
+
+Instead of creating multiple separate files for related components, declare helper components within the same file:
+
+```typescript
+// Good: All related components in one file
+// components/dashboard/MetricsCards.tsx
+
+function MetricCard({ label, value, icon, variant }: MetricCardProps) {
+  return <div>...</div>
+}
+
+function ActiveUsersCard({ count }: { count: number }) {
+  return <MetricCard label="Active Users" value={count} icon={<UsersIcon />} variant="blue" />
+}
+
+function RevenueCard({ amount }: { amount: number }) {
+  return <MetricCard label="Revenue" value={formatCurrency(amount)} icon={<DollarIcon />} variant="green" />
+}
+
+export function MetricsCards({ metrics }: MetricsCardsProps) {
+  return (
+    <div className="grid gap-4 md:grid-cols-3">
+      <ActiveUsersCard count={metrics.activeUsers} />
+      <RevenueCard amount={metrics.revenue} />
+      <ConversionCard rate={metrics.conversionRate} />
+    </div>
+  )
+}
+```
+
+### When to Create Separate Files
+
+Only create separate component files when:
+- The component will be imported and used in multiple, unrelated features
+- The component is truly generic/reusable (like a shared UI library component)
+- The file would become excessively large (>300-400 lines)
+
+### Benefits of This Pattern
+- **Cohesion**: Related components stay together
+- **Easier Navigation**: No need to jump between files for related components
+- **Reduced Boilerplate**: Less import/export overhead
+- **Better Context**: Easy to see how components relate to each other
 
 ## Quality Standards
 

@@ -104,11 +104,11 @@ export default function DashboardPage() {
   }
 
   const handleStatementClick = (id: string) => {
-    router.push(`/dashboard/statements/${id}`)
+    router.push(`/statements/${id}`)
   }
 
   const handleMonthClick = (year: number, month: number) => {
-    router.push(`/dashboard/month/${year}/${month}`)
+    router.push(`/expenses/month/${year}/${month}`)
   }
 
   // Polling effect - polls when there are processing statements
