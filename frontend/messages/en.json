@@ -223,5 +223,52 @@
     "total": "Total",
     "argentinePeso": "Argentine Peso",
     "usDollar": "US Dollar"
-  }
+  },
+  "installments": {
+    "title": "Installments",
+    "subtitle": "Track your ongoing payment commitments",
+    "month": "Month",
+    "allInstallments": "All Installments",
+    "noInstallmentsYet": "No installment purchases yet",
+    "noInstallmentsThisMonth": "No installments for this month",
+    "noActiveInstallmentsThisMonth": "No active installments for this month",
+    "noCompletingInstallmentsThisMonth": "No installments completing this month",
+    "importToGetStarted": "Import statements with installment purchases to get started",
+    "tryDifferentMonth": "Try selecting a different month",
+    "failedToLoad": "Failed to load installments",
+    "noInstallmentsFound": "No installments found",
+    "tryAdjustingFilters": "Try adjusting your filters",
+    "progress": "Progress",
+    "monthly": "Monthly",
+    "remaining": "Remaining",
+    "monthsLeft": "Months Left",
+    "card": "Card",
+    "filters": {
+      "all": "All",
+      "active": "Active",
+      "activeDescription": "Ongoing installments with remaining payments",
+      "completing": "Completing",
+      "completingDescription": "Final payment is due this month"
+    },
+    "status": {
+      "active": "Active",
+      "completing": "Completing"
+    },
+    "summary": {
+      "totalInstallments": "Total Installments",
+      "completingThisMonth": "Completing This Month",
+      "totalRemainingUsd": "Total Remaining (USD)",
+      "totalMonthlyPayment": "Total Monthly Payment"
+    },
+    "table": {
+      "description": "Description",
+      "progress": "Progress",
+      "remaining": "Remaining",
+      "monthsLeft": "Months Left",
+      "monthlyPayment": "Monthly Payment",
+      "card": "Card",
+      "status": "Status"
+    }
+  },
+  "_locale": "en-US"
 }

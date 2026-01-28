@@ -223,5 +223,52 @@
     "total": "Total",
     "argentinePeso": "Peso Argentino",
     "usDollar": "Dólar Estadounidense"
-  }
+  },
+  "installments": {
+    "title": "Cuotas",
+    "subtitle": "Seguimiento de tus compromisos de pago en curso",
+    "month": "Mes",
+    "allInstallments": "Todas las Cuotas",
+    "noInstallmentsYet": "Aún no hay compras en cuotas",
+    "noInstallmentsThisMonth": "No hay cuotas para este mes",
+    "noActiveInstallmentsThisMonth": "No hay cuotas activas para este mes",
+    "noCompletingInstallmentsThisMonth": "No hay cuotas finalizando este mes",
+    "importToGetStarted": "Importa resúmenes con compras en cuotas para comenzar",
+    "tryDifferentMonth": "Intenta seleccionar un mes diferente",
+    "failedToLoad": "Error al cargar cuotas",
+    "noInstallmentsFound": "No se encontraron cuotas",
+    "tryAdjustingFilters": "Intenta ajustar tus filtros",
+    "progress": "Progreso",
+    "monthly": "Mensual",
+    "remaining": "Restante",
+    "monthsLeft": "Meses Restantes",
+    "card": "Tarjeta",
+    "filters": {
+      "all": "Todas",
+      "active": "Activas",
+      "activeDescription": "Cuotas en curso con pagos pendientes",
+      "completing": "Finalizando",
+      "completingDescription": "El pago final vence este mes"
+    },
+    "status": {
+      "active": "Activa",
+      "completing": "Finalizando"
+    },
+    "summary": {
+      "totalInstallments": "Total de Cuotas",
+      "completingThisMonth": "Finalizando Este Mes",
+      "totalRemainingUsd": "Total Restante (USD)",
+      "totalMonthlyPayment": "Pago Mensual Total"
+    },
+    "table": {
+      "description": "Descripción",
+      "progress": "Progreso",
+      "remaining": "Restante",
+      "monthsLeft": "Meses Restantes",
+      "monthlyPayment": "Pago Mensual",
+      "card": "Tarjeta",
+      "status": "Estado"
+    }
+  },
+  "_locale": "es-AR"
 }

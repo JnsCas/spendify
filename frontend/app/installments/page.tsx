@@ -7,6 +7,8 @@ import { InstallmentsSummaryCards } from '@/components/installments/Installments
 import { InstallmentsTable } from '@/components/installments/InstallmentsTable'
 import { InstallmentCard } from '@/components/installments/InstallmentCard'
 import { InstallmentFilters } from '@/components/installments/InstallmentFilters'
+import { useTranslations } from '@/lib/i18n'
+import { formatDate } from '@/lib/format'
 
 function ErrorMessage({ message }: { message: string }) {
   return (
@@ -16,27 +18,31 @@ function ErrorMessage({ message }: { message: string }) {
   )
 }
 
-function formatMonth(monthStr: string): string {
+function formatMonth(monthStr: string, locale: string): string {
   const [year, month] = monthStr.split('-')
   const date = new Date(parseInt(year), parseInt(month) - 1)
-  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  return date.toLocaleDateString(locale, { month: 'long', year: 'numeric' })
 }
 
 function MonthFilter({
   availableMonths,
   selectedMonth,
   onMonthChange,
+  t,
+  locale,
 }: {
   availableMonths: string[]
   selectedMonth: string
   onMonthChange: (month: string) => void
+  t: (key: string) => string
+  locale: string
 }) {
   if (availableMonths.length === 0) return null
 
   return (
     <div className="flex items-center gap-2">
       <label htmlFor="month-filter" className="text-sm text-gray-500">
-        Month:
+        {t('installments.month')}:
       </label>
       <select
         id="month-filter"
@@ -46,7 +52,7 @@ function MonthFilter({
       >
         {availableMonths.map((month) => (
           <option key={month} value={month}>
-            {formatMonth(month)}
+            {formatMonth(month, locale)}
           </option>
         ))}
       </select>
@@ -58,21 +64,27 @@ function PageHeader({
   availableMonths,
   selectedMonth,
   onMonthChange,
+  t,
+  locale,
 }: {
   availableMonths: string[]
   selectedMonth: string
   onMonthChange: (month: string) => void
+  t: (key: string) => string
+  locale: string
 }) {
   return (
     <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
       <div>
-        <h1 className="text-lg font-semibold text-gray-900">Installments</h1>
-        <p className="text-sm text-gray-500">Track your ongoing payment commitments</p>
+        <h1 className="text-lg font-semibold text-gray-900">{t('installments.title')}</h1>
+        <p className="text-sm text-gray-500">{t('installments.subtitle')}</p>
       </div>
       <MonthFilter
         availableMonths={availableMonths}
         selectedMonth={selectedMonth}
         onMonthChange={onMonthChange}
+        t={t}
+        locale={locale}
       />
     </div>
   )
@@ -91,20 +103,22 @@ function LoadingSkeleton() {
 function EmptyState({
   hasAnyInstallments,
   selectedStatus,
+  t,
 }: {
   hasAnyInstallments: boolean
   selectedStatus: 'all' | 'active' | 'completing'
+  t: (key: string) => string
 }) {
   const getMessage = () => {
-    if (!hasAnyInstallments) return 'No installment purchases yet'
-    if (selectedStatus === 'all') return 'No installments for this month'
-    if (selectedStatus === 'active') return 'No active installments for this month'
-    return 'No installments completing this month'
+    if (!hasAnyInstallments) return t('installments.noInstallmentsYet')
+    if (selectedStatus === 'all') return t('installments.noInstallmentsThisMonth')
+    if (selectedStatus === 'active') return t('installments.noActiveInstallmentsThisMonth')
+    return t('installments.noCompletingInstallmentsThisMonth')
   }
 
   const getSubMessage = () => {
-    if (!hasAnyInstallments) return 'Import statements with installment purchases to get started'
-    return 'Try selecting a different month'
+    if (!hasAnyInstallments) return t('installments.importToGetStarted')
+    return t('installments.tryDifferentMonth')
   }
 
   return (
@@ -141,6 +155,8 @@ function InstallmentsList({ installments }: { installments: InstallmentDetail[] 
 }
 
 export default function InstallmentsPage() {
+  const t = useTranslations()
+  const locale = t('_locale') as string
   const [data, setData] = useState<InstallmentsResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -167,7 +183,7 @@ export default function InstallmentsPage() {
         const response = await installmentsApi.getAll()
         setData(response)
       } catch (err: any) {
-        setError(err.response?.data?.message || 'Failed to load installments')
+        setError(err.response?.data?.message || t('installments.failedToLoad'))
       } finally {
         setLoading(false)
       }
@@ -216,6 +232,8 @@ export default function InstallmentsPage() {
           availableMonths={availableMonths}
           selectedMonth={selectedMonth}
           onMonthChange={setSelectedMonth}
+          t={t}
+          locale={locale}
         />
 
         <div className="p-4">
@@ -225,7 +243,7 @@ export default function InstallmentsPage() {
 
       <div className="rounded-lg border border-gray-200 bg-white">
         <div className="border-b border-gray-100 px-4 py-3">
-          <h2 className="text-lg font-semibold text-gray-900">All Installments</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('installments.allInstallments')}</h2>
         </div>
 
         <div className="p-4">
@@ -239,6 +257,7 @@ export default function InstallmentsPage() {
             <EmptyState
               hasAnyInstallments={(data?.installments.length ?? 0) > 0}
               selectedStatus={selectedStatus}
+              t={t}
             />
           ) : (
             <InstallmentsList installments={filteredInstallments} />
