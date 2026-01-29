@@ -60,7 +60,7 @@ export function CardBreakdownChart({ cardBreakdown, currency }: CardBreakdownCha
 
   if (chartData.length === 0) {
     return (
-      <div className="flex h-[280px] items-center justify-center rounded-lg border border-gray-100 bg-gray-50">
+      <div className="flex h-[320px] items-center justify-center rounded-lg border border-gray-100 bg-gray-50">
         <p className="text-sm text-gray-500">
           {t('charts.noCardDataForCurrency', { currency })}
         </p>
@@ -75,7 +75,7 @@ export function CardBreakdownChart({ cardBreakdown, currency }: CardBreakdownCha
       <h3 className="mb-3 text-sm font-medium text-gray-700">
         {t('charts.spendingByCard')}
       </h3>
-      <ResponsiveContainer width="100%" height={200}>
+      <ResponsiveContainer width="100%" height={320}>
         <PieChart>
           <Pie
             data={chartData}
