@@ -5,15 +5,18 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { DocumentIcon } from '@heroicons/react/24/outline'
 import { expensesApi, statementsByMonthApi } from '@/lib/api'
-import { MONTH_NAMES } from '@/lib/types/dashboard'
 import type { MonthExpensesResponse } from '@/lib/types/expense'
 import StatementSummary from '@/components/StatementSummary'
 import MonthExpenseTable from '@/components/MonthExpenseTable'
 import ConfirmationDialog from '@/components/ConfirmationDialog'
+import { useTranslations, useMonthNames } from '@/lib/i18n'
+import { formatCurrency } from '@/lib/format'
 
 export default function MonthDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const t = useTranslations()
+  const monthNames = useMonthNames()
   const [data, setData] = useState<MonthExpensesResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -115,12 +118,12 @@ export default function MonthDetailPage() {
   }
   const statements = Array.from(statementsMap.values())
 
-  const monthName = MONTH_NAMES[month - 1]
+  const monthName = monthNames[month - 1]
 
   if (loading) {
     return (
       <div className="flex h-[200px] items-center justify-center rounded-lg border border-gray-200 bg-white">
-        <p className="text-sm text-gray-500">Loading expenses...</p>
+        <p className="text-sm text-gray-500">{t('expenses.loadingExpenses')}</p>
       </div>
     )
   }
@@ -130,7 +133,7 @@ export default function MonthDetailPage() {
       <div className="flex h-[200px] flex-col items-center justify-center rounded-lg border border-gray-200 bg-white">
         <p className="text-sm text-red-600 mb-4">{error}</p>
         <Link href="/dashboard" className="text-sm text-blue-600 hover:underline">
-          ← Back to Dashboard
+          ← {t('expenses.backToDashboard')}
         </Link>
       </div>
     )
@@ -139,9 +142,9 @@ export default function MonthDetailPage() {
   if (!data) {
     return (
       <div className="flex h-[200px] flex-col items-center justify-center rounded-lg border border-gray-200 bg-white">
-        <p className="text-sm text-gray-500 mb-4">No data found for this month</p>
+        <p className="text-sm text-gray-500 mb-4">{t('expenses.noDataForMonth')}</p>
         <Link href="/dashboard" className="text-sm text-blue-600 hover:underline">
-          ← Back to Dashboard
+          ← {t('expenses.backToDashboard')}
         </Link>
       </div>
     )
@@ -157,7 +160,7 @@ export default function MonthDetailPage() {
               {monthName} {year}
             </h1>
             <p className="text-sm text-gray-500">
-              {data.expenses.length} expenses
+              {t('expenses.expensesCount', { count: data.expenses.length })}
             </p>
           </div>
           <div className="flex gap-2">
@@ -165,13 +168,13 @@ export default function MonthDetailPage() {
               onClick={handleExport}
               className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
             >
-              Export CSV
+              {t('expenses.exportCsv')}
             </button>
             <button
               onClick={handleDeleteClick}
               className="rounded-lg px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
             >
-              Delete
+              {t('expenses.delete')}
             </button>
           </div>
         </div>
@@ -192,17 +195,17 @@ export default function MonthDetailPage() {
       {statements.length > 0 && (
         <div className="rounded-lg border border-gray-200 bg-white">
           <div className="border-b border-gray-100 px-4 py-3">
-            <h2 className="text-lg font-semibold text-gray-900">Statements</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t('statements.title')}</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50/80">
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-gray-500">File</th>
-                  <th className="px-4 py-2 text-center text-xs font-medium uppercase tracking-wide text-gray-500">Expenses</th>
-                  <th className="px-4 py-2 text-center text-xs font-medium uppercase tracking-wide text-gray-500">Installments</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-gray-500">Inst. ARS</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-gray-500">Inst. USD</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wide text-gray-500">{t('expenses.file')}</th>
+                  <th className="px-4 py-2 text-center text-xs font-medium uppercase tracking-wide text-gray-500">{t('dashboard.expenses')}</th>
+                  <th className="px-4 py-2 text-center text-xs font-medium uppercase tracking-wide text-gray-500">{t('dashboard.installments')}</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-gray-500">{t('dashboard.installments')} ARS</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-gray-500">{t('dashboard.installments')} USD</th>
                   <th className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-gray-500">ARS</th>
                   <th className="px-4 py-2 text-right text-xs font-medium uppercase tracking-wide text-gray-500">USD</th>
                 </tr>
@@ -256,7 +259,7 @@ export default function MonthDetailPage() {
       {data.expenses.length > 0 && (
         <div className="rounded-lg border border-gray-200 bg-white">
           <div className="border-b border-gray-100 px-4 py-3">
-            <h2 className="text-lg font-semibold text-gray-900">Expenses</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t('dashboard.expenses')}</h2>
           </div>
           <div className="p-4">
             <MonthExpenseTable expenses={data.expenses} />
@@ -266,17 +269,17 @@ export default function MonthDetailPage() {
 
       {data.expenses.length === 0 && (
         <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
-          <p className="text-sm text-gray-500">No expenses found for {monthName} {year}</p>
+          <p className="text-sm text-gray-500">{t('expenses.noExpenses')}</p>
         </div>
       )}
 
       {/* Delete confirmation dialog */}
       <ConfirmationDialog
         isOpen={showDeleteDialog}
-        title="Delete All Statements"
-        message={`Are you sure you want to delete all ${statements.length} statement${statements.length !== 1 ? 's' : ''} from ${monthName} ${year}? This will permanently remove all expenses associated with these statements. This action cannot be undone.`}
-        confirmLabel={isDeleting ? 'Deleting...' : 'Delete'}
-        cancelLabel="Cancel"
+        title={t('expenses.deleteAllStatements')}
+        message={t('expenses.deleteConfirmation', { count: statements.length, month: monthName, year: year.toString() })}
+        confirmLabel={isDeleting ? t('expenses.deleting') : t('expenses.delete')}
+        cancelLabel={t('common.cancel')}
         variant="danger"
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}

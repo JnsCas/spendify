@@ -82,51 +82,22 @@ export interface CompletingInstallmentsResponse {
   totalUsd: number
 }
 
-// Month names for display
-export const MONTH_NAMES = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-]
-
-export const MONTH_SHORT_NAMES = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-]
-
 // Helper to format end month display (e.g., "Jan 2026")
-export const formatEndMonth = (endMonth: EndMonth): string => {
-  return `${MONTH_SHORT_NAMES[endMonth.month - 1]} ${endMonth.year}`
+// Note: monthNames should be the short month names array from useMonthNamesShort()
+export const formatEndMonth = (endMonth: EndMonth, monthNames: string[]): string => {
+  return `${monthNames[endMonth.month - 1]} ${endMonth.year}`
 }
 
 // Helper to generate 12-month label (e.g., "Feb 2025 - Jan 2026")
-export const formatDateRangeLabel = (endMonth: EndMonth): string => {
+// Note: monthNames should be the short month names array from useMonthNamesShort()
+export const formatDateRangeLabel = (endMonth: EndMonth, monthNames: string[]): string => {
   let startMonth = endMonth.month - 11
   let startYear = endMonth.year
   if (startMonth <= 0) {
     startMonth += 12
     startYear -= 1
   }
-  return `${MONTH_SHORT_NAMES[startMonth - 1]} ${startYear} - ${MONTH_SHORT_NAMES[endMonth.month - 1]} ${endMonth.year}`
+  return `${monthNames[startMonth - 1]} ${startYear} - ${monthNames[endMonth.month - 1]} ${endMonth.year}`
 }
 
 // Helper to generate the 12-month sequence ending at endMonth

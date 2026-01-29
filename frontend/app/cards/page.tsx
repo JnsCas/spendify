@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react'
 import { cardsApi } from '@/lib/api'
 import type { Card } from '@/lib/types/card'
+import { useTranslations } from '@/lib/i18n'
 
 export default function CardsPage() {
+  const t = useTranslations()
   const [cards, setCards] = useState<Card[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -17,7 +19,7 @@ export default function CardsPage() {
       const data = await cardsApi.getAll()
       setCards(data)
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load cards')
+      setError(err.response?.data?.message || t('cards.failedToLoad'))
     } finally {
       setLoading(false)
     }
@@ -46,7 +48,7 @@ export default function CardsPage() {
       setEditingId(null)
       setEditValue('')
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update card')
+      setError(err.response?.data?.message || t('cards.failedToUpdate'))
     } finally {
       setSaving(false)
     }
@@ -76,9 +78,9 @@ export default function CardsPage() {
       <div className="rounded-lg border border-gray-200 bg-white">
         {/* Section Header */}
         <div className="border-b border-gray-100 px-4 py-3">
-          <h1 className="text-lg font-semibold text-gray-900">Cards</h1>
+          <h1 className="text-lg font-semibold text-gray-900">{t('cards.title')}</h1>
           <p className="text-sm text-gray-500">
-            Customize card names for your dashboard charts
+            {t('cards.subtitle')}
           </p>
         </div>
 
@@ -100,8 +102,8 @@ export default function CardsPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                 </svg>
               </div>
-              <p className="text-sm text-gray-500">No cards yet</p>
-              <p className="text-xs text-gray-400">Cards appear after importing statements</p>
+              <p className="text-sm text-gray-500">{t('cards.noCardsYet')}</p>
+              <p className="text-xs text-gray-400">{t('cards.cardsAppearAfterImport')}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -128,13 +130,13 @@ export default function CardsPage() {
                             onChange={(e) => setEditValue(e.target.value)}
                             onKeyDown={(e) => handleKeyDown(e, card.id)}
                             className="w-48 rounded-md border border-blue-300 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Enter custom name"
+                            placeholder={t('cards.enterCustomName')}
                             autoFocus
                           />
                         ) : (
                           <p className="font-medium text-gray-900">
                             {card.customName || (
-                              <span className="text-gray-400">No custom name</span>
+                              <span className="text-gray-400">{t('cards.noCustomName')}</span>
                             )}
                           </p>
                         )}
@@ -155,14 +157,14 @@ export default function CardsPage() {
                             disabled={saving}
                             className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
                           >
-                            {saving ? 'Saving...' : 'Save'}
+                            {saving ? t('cards.saving') : t('common.save')}
                           </button>
                           <button
                             onClick={handleCancel}
                             disabled={saving}
                             className="rounded-md px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-200 disabled:opacity-50"
                           >
-                            Cancel
+                            {t('common.cancel')}
                           </button>
                         </>
                       ) : (
@@ -170,7 +172,7 @@ export default function CardsPage() {
                           onClick={() => handleEdit(card)}
                           className="rounded-md px-3 py-1.5 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50"
                         >
-                          Edit
+                          {t('cards.edit')}
                         </button>
                       )}
                     </div>

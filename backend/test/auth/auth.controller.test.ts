@@ -47,6 +47,7 @@ describe('AuthController', () => {
           id: '123',
           email: registerDto.email,
           name: registerDto.name,
+          language: 'en',
         },
       };
 
@@ -77,6 +78,7 @@ describe('AuthController', () => {
           id: '123',
           email: loginDto.email,
           name: 'Test User',
+          language: 'en',
         },
       };
 
@@ -100,6 +102,7 @@ describe('AuthController', () => {
           id: mockUser.id,
           email: mockUser.email,
           name: mockUser.name,
+          language: mockUser.language,
         },
         isAdmin: false,
       };
@@ -119,6 +122,7 @@ describe('AuthController', () => {
           id: mockUser.id,
           email: mockUser.email,
           name: mockUser.name,
+          language: mockUser.language,
         },
         isAdmin: true,
       };

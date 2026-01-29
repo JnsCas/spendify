@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { InstallmentDetail, InstallmentCard as CardType } from '@/lib/types/installments'
 import { formatCurrency } from '@/lib/utils/currency'
+import { useTranslations } from '@/lib/i18n'
 
 interface InstallmentsTableProps {
   installments: InstallmentDetail[]
@@ -11,18 +12,18 @@ interface InstallmentsTableProps {
 type SortField = 'description' | 'monthlyAmount' | 'remainingAmount' | 'remainingMonths' | 'status'
 type SortDirection = 'asc' | 'desc'
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, t }: { status: string; t: (key: string) => string }) {
   switch (status) {
     case 'active':
       return (
         <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
-          Active
+          {t('installments.status.active')}
         </span>
       )
     case 'completing':
       return (
         <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
-          Completing
+          {t('installments.status.completing')}
         </span>
       )
     default:
@@ -57,7 +58,7 @@ function SortIcon({
   )
 }
 
-function EmptyState() {
+function EmptyState({ t }: { t: (key: string) => string }) {
   return (
     <div className="flex h-[300px] flex-col items-center justify-center rounded-lg border border-gray-100 bg-gray-50">
       <div className="mb-2 rounded-full bg-gray-100 p-3">
@@ -70,8 +71,8 @@ function EmptyState() {
           />
         </svg>
       </div>
-      <p className="text-sm text-gray-500">No installments found</p>
-      <p className="text-xs text-gray-400">Try adjusting your filters</p>
+      <p className="text-sm text-gray-500">{t('installments.noInstallmentsFound')}</p>
+      <p className="text-xs text-gray-400">{t('installments.tryAdjustingFilters')}</p>
     </div>
   )
 }
@@ -145,12 +146,12 @@ function AmountCell({
   )
 }
 
-function DescriptionCell({ description, purchaseDate }: { description: string; purchaseDate: string | null }) {
+function DescriptionCell({ description, purchaseDate, locale }: { description: string; purchaseDate: string | null; locale: string }) {
   return (
     <td className="px-6 py-4">
       <div className="text-sm font-medium text-gray-900">{description}</div>
       {purchaseDate && (
-        <div className="text-xs text-gray-500">{new Date(purchaseDate).toLocaleDateString('es-AR')}</div>
+        <div className="text-xs text-gray-500">{new Date(purchaseDate).toLocaleDateString(locale)}</div>
       )}
     </td>
   )
@@ -168,10 +169,10 @@ function CardCell({ card }: { card: CardType | null }) {
   )
 }
 
-function InstallmentRow({ installment }: { installment: InstallmentDetail }) {
+function InstallmentRow({ installment, t, locale }: { installment: InstallmentDetail; t: (key: string) => string; locale: string }) {
   return (
     <tr className="hover:bg-gray-50">
-      <DescriptionCell description={installment.description} purchaseDate={installment.purchaseDate} />
+      <DescriptionCell description={installment.description} purchaseDate={installment.purchaseDate} locale={locale} />
       <ProgressCell current={installment.currentInstallment} total={installment.totalInstallments} />
       <AmountCell arsAmount={installment.remainingAmountArs} usdAmount={installment.remainingAmountUsd} />
       <td className="px-6 py-4 text-sm text-gray-900">{installment.remainingMonths}</td>
@@ -182,13 +183,15 @@ function InstallmentRow({ installment }: { installment: InstallmentDetail }) {
       />
       <CardCell card={installment.card} />
       <td className="px-6 py-4">
-        <StatusBadge status={installment.status} />
+        <StatusBadge status={installment.status} t={t} />
       </td>
     </tr>
   )
 }
 
 export function InstallmentsTable({ installments }: InstallmentsTableProps) {
+  const t = useTranslations()
+  const locale = t('_locale') as string
   const [sortField, setSortField] = useState<SortField>('remainingMonths')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
 
@@ -234,7 +237,7 @@ export function InstallmentsTable({ installments }: InstallmentsTableProps) {
   })
 
   if (installments.length === 0) {
-    return <EmptyState />
+    return <EmptyState t={t} />
   }
 
   return (
@@ -243,41 +246,41 @@ export function InstallmentsTable({ installments }: InstallmentsTableProps) {
         <thead className="bg-gray-50">
           <tr>
             <SortableHeader
-              label="Description"
+              label={t('installments.table.description')}
               field="description"
               onSort={handleSort}
               currentSortField={sortField}
               sortDirection={sortDirection}
             />
             <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-              Progress
+              {t('installments.table.progress')}
             </th>
             <SortableHeader
-              label="Remaining"
+              label={t('installments.table.remaining')}
               field="remainingAmount"
               onSort={handleSort}
               currentSortField={sortField}
               sortDirection={sortDirection}
             />
             <SortableHeader
-              label="Months Left"
+              label={t('installments.table.monthsLeft')}
               field="remainingMonths"
               onSort={handleSort}
               currentSortField={sortField}
               sortDirection={sortDirection}
             />
             <SortableHeader
-              label="Monthly Payment"
+              label={t('installments.table.monthlyPayment')}
               field="monthlyAmount"
               onSort={handleSort}
               currentSortField={sortField}
               sortDirection={sortDirection}
             />
             <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-              Card
+              {t('installments.table.card')}
             </th>
             <SortableHeader
-              label="Status"
+              label={t('installments.table.status')}
               field="status"
               onSort={handleSort}
               currentSortField={sortField}
@@ -287,7 +290,7 @@ export function InstallmentsTable({ installments }: InstallmentsTableProps) {
         </thead>
         <tbody className="divide-y divide-gray-200 bg-white">
           {sortedInstallments.map((installment) => (
-            <InstallmentRow key={installment.id} installment={installment} />
+            <InstallmentRow key={installment.id} installment={installment} t={t} locale={locale} />
           ))}
         </tbody>
       </table>

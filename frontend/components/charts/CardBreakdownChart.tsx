@@ -8,6 +8,8 @@ import {
   Tooltip,
 } from 'recharts'
 import { CardBreakdown } from '@/lib/types/dashboard'
+import { useTranslations, useLocale } from '@/lib/i18n'
+import { formatCurrency } from '@/lib/format'
 
 type Currency = 'ARS' | 'USD'
 
@@ -28,20 +30,6 @@ const COLORS = [
   '#84cc16', // lime
 ]
 
-const CURRENCY_CONFIG: Record<Currency, { locale: string }> = {
-  ARS: { locale: 'es-AR' },
-  USD: { locale: 'en-US' },
-}
-
-const formatCurrency = (value: number, currency: Currency) => {
-  const config = CURRENCY_CONFIG[currency]
-  return new Intl.NumberFormat(config.locale, {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value)
-}
-
 interface ChartDataPoint {
   name: string
   value: number
@@ -50,6 +38,8 @@ interface ChartDataPoint {
 }
 
 export function CardBreakdownChart({ cardBreakdown, currency }: CardBreakdownChartProps) {
+  const t = useTranslations()
+  const locale = useLocale()
   // Transform data for the chart - filter out cards with no spending
   const chartData: ChartDataPoint[] = cardBreakdown
     .map((card, index) => {
@@ -71,7 +61,9 @@ export function CardBreakdownChart({ cardBreakdown, currency }: CardBreakdownCha
   if (chartData.length === 0) {
     return (
       <div className="flex h-[280px] items-center justify-center rounded-lg border border-gray-100 bg-gray-50">
-        <p className="text-sm text-gray-500">No {currency} card data</p>
+        <p className="text-sm text-gray-500">
+          {t('charts.noCardDataForCurrency', { currency })}
+        </p>
       </div>
     )
   }
@@ -81,7 +73,7 @@ export function CardBreakdownChart({ cardBreakdown, currency }: CardBreakdownCha
   return (
     <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-4">
       <h3 className="mb-3 text-sm font-medium text-gray-700">
-        Spending by Card
+        {t('charts.spendingByCard')}
       </h3>
       <ResponsiveContainer width="100%" height={200}>
         <PieChart>
@@ -109,16 +101,16 @@ export function CardBreakdownChart({ cardBreakdown, currency }: CardBreakdownCha
               borderRadius: '8px',
             }}
             formatter={(value) => [
-              formatCurrency(value as number, currency),
-              'Amount',
+              formatCurrency(value as number, currency, locale),
+              t('dashboard.amount'),
             ]}
           />
         </PieChart>
       </ResponsiveContainer>
       <div className="mt-2 text-center">
-        <p className="text-sm text-gray-500">Total</p>
+        <p className="text-sm text-gray-500">{t('charts.total')}</p>
         <p className="text-xl font-bold text-gray-900">
-          {formatCurrency(total, currency)}
+          {formatCurrency(total, currency, locale)}
         </p>
       </div>
     </div>

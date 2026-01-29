@@ -8,6 +8,7 @@ import {
   EndMonth,
   formatDateRangeLabel,
 } from '@/lib/types/dashboard'
+import { useTranslations, useMonthNamesShort } from '@/lib/i18n'
 
 type Currency = 'ARS' | 'USD'
 
@@ -17,16 +18,14 @@ interface DashboardChartsProps {
   loading: boolean
 }
 
-const CURRENCY_COLORS: Record<Currency, { active: string; inactive: string; label: string }> = {
+const CURRENCY_COLORS: Record<Currency, { active: string; inactive: string }> = {
   ARS: {
     active: 'bg-blue-600 text-white ring-blue-600/20',
     inactive: 'bg-blue-50 text-blue-700 hover:bg-blue-100 ring-blue-100',
-    label: 'Argentine Peso',
   },
   USD: {
     active: 'bg-emerald-600 text-white ring-emerald-600/20',
     inactive: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 ring-emerald-100',
-    label: 'US Dollar',
   },
 }
 
@@ -35,6 +34,8 @@ export function DashboardCharts({
   endMonth,
   loading,
 }: DashboardChartsProps) {
+  const t = useTranslations()
+  const monthNamesShort = useMonthNamesShort()
   const [selectedCurrency, setSelectedCurrency] = useState<Currency | null>(null)
 
   // Determine available currencies and the most used one
@@ -90,11 +91,11 @@ export function DashboardCharts({
     return (
       <div className="rounded-lg border border-gray-200 bg-white">
         <div className="border-b border-gray-100 px-4 py-3">
-          <h2 className="text-lg font-semibold text-gray-900">Spending</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('dashboard.spending')}</h2>
         </div>
         <div className="flex h-[200px] items-center justify-center p-4">
           <p className="text-gray-500">
-            No spending data for {formatDateRangeLabel(endMonth)}
+            {t('dashboard.noSpendingData', { period: formatDateRangeLabel(endMonth, monthNamesShort) })}
           </p>
         </div>
       </div>
@@ -107,7 +108,7 @@ export function DashboardCharts({
     <div className="rounded-lg border border-gray-200 bg-white">
       {/* Section Header with Currency Pills */}
       <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-        <h2 className="text-lg font-semibold text-gray-900">Spending</h2>
+        <h2 className="text-lg font-semibold text-gray-900">{t('dashboard.spending')}</h2>
 
         {/* Currency Pills - clearly part of this section */}
         {availableCurrencies.length > 0 && (
@@ -115,6 +116,9 @@ export function DashboardCharts({
             {availableCurrencies.map((currency) => {
               const colors = CURRENCY_COLORS[currency]
               const isActive = activeCurrency === currency
+              const label = currency === 'ARS'
+                ? t('charts.argentinePeso')
+                : t('charts.usDollar')
               return (
                 <button
                   key={currency}
@@ -122,7 +126,7 @@ export function DashboardCharts({
                   className={`rounded-full px-3 py-1 text-sm font-medium ring-1 transition-all ${
                     isActive ? colors.active : colors.inactive
                   }`}
-                  title={colors.label}
+                  title={label}
                 >
                   {currency}
                 </button>

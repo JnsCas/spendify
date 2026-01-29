@@ -1,6 +1,9 @@
+'use client'
+
 import type { ReactNode } from 'react'
 import type { InstallmentsSummary } from '@/lib/types/installments'
 import { formatCurrency } from '@/lib/utils/currency'
+import { useTranslations } from '@/lib/i18n'
 
 interface InstallmentsSummaryCardsProps {
   summary: InstallmentsSummary
@@ -107,10 +110,10 @@ const WalletIcon = () => (
   </svg>
 )
 
-function TotalInstallmentsCard({ count }: { count: number }) {
+function TotalInstallmentsCard({ count, t }: { count: number; t: (key: string) => string }) {
   return (
     <SummaryCard
-      label="Total Installments"
+      label={t('installments.summary.totalInstallments')}
       value={count}
       icon={<ClipboardIcon />}
       variant="default"
@@ -118,10 +121,10 @@ function TotalInstallmentsCard({ count }: { count: number }) {
   )
 }
 
-function CompletingThisMonthCard({ amount }: { amount: number }) {
+function CompletingThisMonthCard({ amount, t }: { amount: number; t: (key: string) => string }) {
   return (
     <SummaryCard
-      label="Completing This Month"
+      label={t('installments.summary.completingThisMonth')}
       value={formatCurrency(amount, 'ARS')}
       icon={<CheckCircleIcon />}
       variant="purple"
@@ -129,10 +132,10 @@ function CompletingThisMonthCard({ amount }: { amount: number }) {
   )
 }
 
-function TotalRemainingUsdCard({ amount }: { amount: number }) {
+function TotalRemainingUsdCard({ amount, t }: { amount: number; t: (key: string) => string }) {
   return (
     <SummaryCard
-      label="Total Remaining (USD)"
+      label={t('installments.summary.totalRemainingUsd')}
       value={formatCurrency(amount, 'USD')}
       icon={<DollarIcon />}
       variant="emerald"
@@ -140,10 +143,10 @@ function TotalRemainingUsdCard({ amount }: { amount: number }) {
   )
 }
 
-function TotalMonthlyPaymentCard({ amount }: { amount: number }) {
+function TotalMonthlyPaymentCard({ amount, t }: { amount: number; t: (key: string) => string }) {
   return (
     <SummaryCard
-      label="Total Monthly Payment"
+      label={t('installments.summary.totalMonthlyPayment')}
       value={formatCurrency(amount, 'ARS')}
       icon={<WalletIcon />}
       variant="blue"
@@ -152,6 +155,8 @@ function TotalMonthlyPaymentCard({ amount }: { amount: number }) {
 }
 
 export function InstallmentsSummaryCards({ summary, loading }: InstallmentsSummaryCardsProps) {
+  const t = useTranslations()
+
   if (loading) {
     return (
       <div className="grid gap-4 md:grid-cols-4">
@@ -167,10 +172,10 @@ export function InstallmentsSummaryCards({ summary, loading }: InstallmentsSumma
 
   return (
     <div className="grid gap-4 md:grid-cols-4">
-      <TotalInstallmentsCard count={summary.activeCount} />
-      <CompletingThisMonthCard amount={summary.completingThisMonthArs} />
-      <TotalRemainingUsdCard amount={summary.totalRemainingUsd} />
-      <TotalMonthlyPaymentCard amount={summary.totalMonthlyPaymentArs} />
+      <TotalInstallmentsCard count={summary.activeCount} t={t} />
+      <CompletingThisMonthCard amount={summary.completingThisMonthArs} t={t} />
+      <TotalRemainingUsdCard amount={summary.totalRemainingUsd} t={t} />
+      <TotalMonthlyPaymentCard amount={summary.totalMonthlyPaymentArs} t={t} />
     </div>
   )
 }

@@ -165,3 +165,26 @@ export const inviteCodesApi = {
     await api.delete(`/invite-codes/${id}`)
   },
 }
+
+// Users API
+export interface ProfileResponse {
+  id: string
+  email: string
+  name: string
+  language: string
+}
+
+export interface UpdateProfileDto {
+  language?: string
+}
+
+export const usersApi = {
+  getProfile: async (): Promise<ProfileResponse> => {
+    const { data } = await api.get('/users/profile')
+    return data
+  },
+  updateProfile: async (dto: UpdateProfileDto): Promise<ProfileResponse> => {
+    const { data } = await api.patch('/users/profile', dto)
+    return data
+  },
+}

@@ -1,15 +1,19 @@
 'use client'
 
+import { useTranslations } from '@/lib/i18n'
+
 interface InstallmentFiltersProps {
   selectedStatus: 'all' | 'active' | 'completing'
   onStatusChange: (status: 'all' | 'active' | 'completing') => void
 }
 
 export function InstallmentFilters({ selectedStatus, onStatusChange }: InstallmentFiltersProps) {
+  const t = useTranslations()
+
   const tabs = [
-    { value: 'all' as const, label: 'All', description: null },
-    { value: 'active' as const, label: 'Active', description: 'Ongoing installments with remaining payments' },
-    { value: 'completing' as const, label: 'Completing', description: 'Final payment is due this month' },
+    { value: 'all' as const, label: t('installments.filters.all'), description: null },
+    { value: 'active' as const, label: t('installments.filters.active'), description: t('installments.filters.activeDescription') },
+    { value: 'completing' as const, label: t('installments.filters.completing'), description: t('installments.filters.completingDescription') },
   ]
 
   return (

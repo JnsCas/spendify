@@ -1,7 +1,9 @@
 'use client'
 
 import { CalendarIcon, DocumentIcon } from '@heroicons/react/24/outline'
-import { MONTH_NAMES, Statement } from '@/lib/types/dashboard'
+import { Statement } from '@/lib/types/dashboard'
+import { useTranslations, useLocale, useMonthNames } from '@/lib/i18n'
+import { formatCurrency } from '@/lib/format'
 
 interface MonthCardProps {
   month: number
@@ -16,21 +18,6 @@ interface MonthCardProps {
   isLowestSpending?: boolean
 }
 
-const formatCurrency = (value: number, currency: 'ARS' | 'USD') => {
-  if (currency === 'ARS') {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      maximumFractionDigits: 0,
-    }).format(value)
-  }
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(value)
-}
-
 export function MonthCard({
   month,
   year,
@@ -43,7 +30,10 @@ export function MonthCard({
   isHighestSpending = false,
   isLowestSpending = false,
 }: MonthCardProps) {
-  const monthName = MONTH_NAMES[month - 1]
+  const t = useTranslations()
+  const locale = useLocale()
+  const monthNames = useMonthNames()
+  const monthName = monthNames[month - 1]
   const hasStatements = statementCount > 0
 
   // Determine card styling based on spending status
@@ -105,12 +95,12 @@ export function MonthCard({
             )}
             {isHighestSpending && (
               <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white">
-                High
+                {t('common.high')}
               </span>
             )}
             {isLowestSpending && (
               <span className="rounded-full bg-emerald-500 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white">
-                Low
+                {t('common.low')}
               </span>
             )}
           </div>
@@ -128,14 +118,14 @@ export function MonthCard({
               <div className="flex justify-between text-sm">
                 <span className="text-xs text-gray-400">ARS</span>
                 <span className="font-medium text-blue-600">
-                  {formatCurrency(totalArs, 'ARS')}
+                  {formatCurrency(totalArs, 'ARS', locale)}
                 </span>
               </div>
               {totalUsd > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-xs text-gray-400">USD</span>
                   <span className="font-medium text-emerald-600">
-                    {formatCurrency(totalUsd, 'USD')}
+                    {formatCurrency(totalUsd, 'USD', locale)}
                   </span>
                 </div>
               )}
@@ -162,7 +152,7 @@ export function MonthCard({
           </>
         ) : (
           <p className="py-2 text-center text-xs text-gray-400">
-            No statements
+            {t('dashboard.noStatements')}
           </p>
         )}
       </div>

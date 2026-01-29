@@ -10,11 +10,12 @@ import {
   Tooltip,
 } from 'recharts'
 import {
-  MONTH_SHORT_NAMES,
   MonthlyData,
   EndMonth,
   generate12MonthSequence,
 } from '@/lib/types/dashboard'
+import { useTranslations, useLocale, useMonthNamesShort } from '@/lib/i18n'
+import { formatCurrency } from '@/lib/format'
 
 type Currency = 'ARS' | 'USD'
 
@@ -31,21 +32,9 @@ interface ChartDataPoint {
   value: number
 }
 
-const CURRENCY_CONFIG: Record<
-  Currency,
-  { color: string; label: string; locale: string }
-> = {
-  ARS: { color: '#3b82f6', label: 'Argentine Peso', locale: 'es-AR' },
-  USD: { color: '#10b981', label: 'US Dollar', locale: 'en-US' },
-}
-
-const formatCurrency = (value: number, currency: Currency) => {
-  const config = CURRENCY_CONFIG[currency]
-  return new Intl.NumberFormat(config.locale, {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 0,
-  }).format(value)
+const CURRENCY_CONFIG: Record<Currency, { color: string }> = {
+  ARS: { color: '#3b82f6' },
+  USD: { color: '#10b981' },
 }
 
 export function SpendingTrendChart({
@@ -53,6 +42,9 @@ export function SpendingTrendChart({
   endMonth,
   currency,
 }: SpendingTrendChartProps) {
+  const t = useTranslations()
+  const locale = useLocale()
+  const monthNamesShort = useMonthNamesShort()
   const config = CURRENCY_CONFIG[currency]
 
   // Generate the 12-month sequence
@@ -74,7 +66,7 @@ export function SpendingTrendChart({
     const value = currency === 'ARS' ? data?.totalArs : data?.totalUsd
 
     return {
-      month: `${MONTH_SHORT_NAMES[month - 1]} '${String(year).slice(-2)}`,
+      month: `${monthNamesShort[month - 1]} '${String(year).slice(-2)}`,
       monthNum: month,
       year,
       value: value || 0,
@@ -86,7 +78,9 @@ export function SpendingTrendChart({
   if (!hasData) {
     return (
       <div className="flex h-[280px] items-center justify-center rounded-lg border border-gray-100 bg-gray-50">
-        <p className="text-sm text-gray-500">No {currency} spending data</p>
+        <p className="text-sm text-gray-500">
+          {t('charts.noDataForCurrency', { currency })}
+        </p>
       </div>
     )
   }
@@ -94,7 +88,7 @@ export function SpendingTrendChart({
   return (
     <div className="flex h-full flex-col rounded-lg border border-gray-100 bg-gray-50/50 p-4">
       <h3 className="mb-3 text-sm font-medium text-gray-700">
-        Spending Trend
+        {t('charts.spendingTrend')}
       </h3>
       <ResponsiveContainer width="100%" height="100%" minHeight={230}>
         <AreaChart
@@ -122,7 +116,7 @@ export function SpendingTrendChart({
           <YAxis
             tick={{ fill: '#6b7280', fontSize: 12 }}
             tickLine={{ stroke: '#e5e7eb' }}
-            tickFormatter={(value) => formatCurrency(value, currency)}
+            tickFormatter={(value) => formatCurrency(value, currency, locale)}
             width={80}
           />
           <Tooltip
@@ -132,7 +126,7 @@ export function SpendingTrendChart({
               borderRadius: '8px',
             }}
             formatter={(value) => [
-              formatCurrency(value as number, currency),
+              formatCurrency(value as number, currency, locale),
               currency,
             ]}
           />

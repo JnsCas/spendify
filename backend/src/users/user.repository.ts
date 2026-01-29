@@ -26,4 +26,13 @@ export class UserRepository {
     const user = this.repository.create(data);
     return this.repository.save(user);
   }
+
+  async update(id: string, data: Partial<User>): Promise<User> {
+    await this.repository.update(id, data);
+    const user = await this.findById(id);
+    if (!user) {
+      throw new Error(`User with id ${id} not found`);
+    }
+    return user;
+  }
 }

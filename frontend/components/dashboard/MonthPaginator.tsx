@@ -4,9 +4,9 @@ import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 import {
   EndMonth,
   MonthlyData,
-  MONTH_SHORT_NAMES,
   formatDateRangeLabel,
 } from '@/lib/types/dashboard'
+import { useMonthNamesShort } from '@/lib/i18n'
 
 interface MonthPaginatorProps {
   endMonth: EndMonth
@@ -23,6 +23,7 @@ export function MonthPaginator({
   totalUsd = 0,
   monthlyData = [],
 }: MonthPaginatorProps) {
+  const monthNamesShort = useMonthNamesShort()
   const now = new Date()
   const currentEndMonth: EndMonth = {
     year: now.getFullYear(),
@@ -137,12 +138,12 @@ export function MonthPaginator({
                   value={`${opt.year}-${opt.month}`}
                   className="text-gray-900"
                 >
-                  {MONTH_SHORT_NAMES[opt.month - 1]} {opt.year}
+                  {monthNamesShort[opt.month - 1]} {opt.year}
                 </option>
               ))}
             </select>
             <span className="text-xs text-white/70">
-              {formatDateRangeLabel(endMonth)}
+              {formatDateRangeLabel(endMonth, monthNamesShort)}
             </span>
           </div>
 
