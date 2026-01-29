@@ -265,13 +265,13 @@ describe('ExpenseTable Component', () => {
     it('should format amounts correctly', () => {
       render(<ExpenseTable expenses={mockExpenses} />)
 
-      // ARS amounts with thousands separator
-      expect(screen.getByText('$10,000')).toBeInTheDocument()
-      expect(screen.getByText('$15,000')).toBeInTheDocument()
+      // ARS amounts with currency code and thousands separator
+      expect(screen.getByText('ARS 10,000')).toBeInTheDocument()
+      expect(screen.getByText('ARS 15,000')).toBeInTheDocument()
 
-      // USD amounts
-      expect(screen.getByText('US$100')).toBeInTheDocument()
-      expect(screen.getByText('US$150')).toBeInTheDocument()
+      // USD amounts with $ symbol
+      expect(screen.getByText('$100.00')).toBeInTheDocument()
+      expect(screen.getByText('$150.00')).toBeInTheDocument()
     })
 
     it('should display installments when present', () => {
