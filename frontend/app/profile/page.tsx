@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/lib/store'
 import { usersApi } from '@/lib/api'
 import { useTranslations } from '@/lib/i18n'
-import { GlobeAltIcon, CheckIcon } from '@heroicons/react/24/outline'
+import { CheckIcon } from '@heroicons/react/24/outline'
 
 export default function ProfilePage() {
   const t = useTranslations()
@@ -55,21 +55,16 @@ export default function ProfilePage() {
   ]
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">{t('profile.title')}</h1>
-      </div>
-
-      <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-        <div className="border-b border-gray-200 bg-gray-50 px-6 py-4">
-          <div className="flex items-center gap-2">
-            <GlobeAltIcon className="h-5 w-5 text-gray-400" />
-            <h2 className="text-lg font-semibold text-gray-900">{t('profile.language')}</h2>
-          </div>
-          <p className="mt-1 text-sm text-gray-500">{t('profile.selectLanguage')}</p>
+    <div className="space-y-4">
+      <div className="rounded-lg border border-gray-200 bg-white">
+        {/* Section Header */}
+        <div className="border-b border-gray-100 px-4 py-3">
+          <h1 className="text-lg font-semibold text-gray-900">{t('profile.title')}</h1>
+          <p className="text-sm text-gray-500">{t('profile.selectLanguage')}</p>
         </div>
 
-        <div className="p-6">
+        {/* Content */}
+        <div className="p-4">
           <div className="space-y-3">
             {languages.map((lang) => (
               <button
