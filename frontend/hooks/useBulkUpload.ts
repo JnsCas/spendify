@@ -106,14 +106,18 @@ export function useBulkUpload() {
   }, [removeItem])
 
   const clearAll = useCallback(() => {
-    // Get current items to find which local files to keep (in-progress items)
+    // Get current items to find which local files to keep (truly in-progress items)
     const currentItems = useImportStore.getState().items
     const inProgressLocalIds = new Set(
       currentItems
-        .filter((item) => item.status !== 'completed' && item.status !== 'failed')
+        .filter((item) =>
+          item.status === 'uploading' ||
+          item.status === 'pending' ||
+          item.status === 'processing'
+        )
         .map((item) => item.localId)
     )
-    // Only keep local files for in-progress items
+    // Only keep local files for in-progress items (not queued, completed, or failed)
     setLocalFiles((prev) => prev.filter((lf) => inProgressLocalIds.has(lf.localId)))
     clearStore()
   }, [clearStore])
