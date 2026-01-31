@@ -12,7 +12,7 @@ import {
   ArrowRightOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
-  SparklesIcon,
+  CurrencyDollarIcon,
 } from '@heroicons/react/24/outline'
 import {
   HomeIcon as HomeIconSolid,
@@ -265,7 +265,7 @@ export function Navigator({
             className="group flex items-center gap-2 transition-transform duration-200 hover:scale-[1.02]"
           >
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-md shadow-indigo-200">
-              <SparklesIcon className="h-5 w-5 text-white" />
+              <CurrencyDollarIcon className="h-6 w-6 text-white" />
             </div>
             <span className="text-xl font-bold tracking-tight text-gray-900">
               Spendify
