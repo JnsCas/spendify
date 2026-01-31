@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { ExclamationCircleIcon } from '@heroicons/react/24/outline'
 import { useAuthStore } from '@/lib/store'
 import { AppIcon } from '@/components/AppIcon'
@@ -37,12 +38,16 @@ function LanguageSwitcher() {
 
 function AuthHeader() {
   return (
-    <header className="absolute top-0 left-0 right-0 h-16 flex items-center justify-between px-4 max-w-7xl mx-auto w-full">
-      <div className="flex items-center gap-2">
-        <AppIcon size="small" />
-        <span className="text-xl font-bold tracking-tight text-gray-900">Spendify</span>
-      </div>
-      <LanguageSwitcher />
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          <Link href="/" className="flex items-center gap-2">
+            <AppIcon size="small" />
+            <span className="text-xl font-bold tracking-tight text-gray-900">Spendify</span>
+          </Link>
+          <LanguageSwitcher />
+        </div>
+      </nav>
     </header>
   )
 }
@@ -102,7 +107,7 @@ export function getTranslatedError(
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4 pt-20 relative">
+    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4 pt-24 relative">
       <AuthHeader />
       <div className="w-full max-w-md">
         {children}
