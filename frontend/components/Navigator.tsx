@@ -12,7 +12,6 @@ import {
   ArrowRightOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
-  CurrencyDollarIcon,
 } from '@heroicons/react/24/outline'
 import {
   HomeIcon as HomeIconSolid,
@@ -22,6 +21,7 @@ import {
   Cog6ToothIcon as Cog6ToothSolid,
 } from '@heroicons/react/24/solid'
 import { useTranslations } from '@/lib/i18n'
+import { AppIcon } from '@/components/AppIcon'
 import clsx from 'clsx'
 
 interface NavigatorProps {
@@ -264,9 +264,7 @@ export function Navigator({
             href="/dashboard"
             className="group flex items-center gap-2 transition-transform duration-200 hover:scale-[1.02]"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-md shadow-indigo-200">
-              <CurrencyDollarIcon className="h-6 w-6 text-white" />
-            </div>
+            <AppIcon size="small" />
             <span className="text-xl font-bold tracking-tight text-gray-900">
               Spendify
             </span>

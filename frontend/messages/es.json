@@ -84,6 +84,9 @@
     "register": "Registrarse",
     "email": "Correo electrónico",
     "password": "Contraseña",
+    "confirmPassword": "Confirmar Contraseña",
+    "confirmPasswordPlaceholder": "Confirma tu contraseña",
+    "passwordsDoNotMatch": "Las contraseñas no coinciden",
     "name": "Nombre",
     "inviteCode": "Código de invitación",
     "emailPlaceholder": "tu@ejemplo.com",
@@ -101,7 +104,14 @@
     "emailRequired": "El correo electrónico es requerido",
     "passwordRequired": "La contraseña es requerida",
     "nameRequired": "El nombre es requerido",
-    "inviteCodeRequired": "El código de invitación es requerido"
+    "inviteCodeRequired": "El código de invitación es requerido",
+    "signInToAccount": "Inicia sesión en tu cuenta",
+    "createAccount": "Crea tu cuenta",
+    "createAccountSubtitle": "Comienza a rastrear tus gastos hoy",
+    "invalidEmail": "Por favor ingresa un correo electrónico válido",
+    "invalidCredentials": "Correo electrónico o contraseña inválidos",
+    "emailAlreadyExists": "Ya existe una cuenta con este correo electrónico",
+    "invalidInviteCode": "Código de invitación inválido"
   },
   "import": {
     "title": "Importar Resumen",

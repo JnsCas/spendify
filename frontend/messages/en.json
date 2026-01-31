@@ -84,6 +84,9 @@
     "register": "Sign Up",
     "email": "Email",
     "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordPlaceholder": "Confirm your password",
+    "passwordsDoNotMatch": "Passwords do not match",
     "name": "Name",
     "inviteCode": "Invite Code",
     "emailPlaceholder": "you@example.com",
@@ -101,7 +104,14 @@
     "emailRequired": "Email is required",
     "passwordRequired": "Password is required",
     "nameRequired": "Name is required",
-    "inviteCodeRequired": "Invite code is required"
+    "inviteCodeRequired": "Invite code is required",
+    "signInToAccount": "Sign in to your account",
+    "createAccount": "Create your account",
+    "createAccountSubtitle": "Start tracking your expenses today",
+    "invalidEmail": "Please enter a valid email address",
+    "invalidCredentials": "Invalid email or password",
+    "emailAlreadyExists": "An account with this email already exists",
+    "invalidInviteCode": "Invalid invite code"
   },
   "import": {
     "title": "Import Statement",
