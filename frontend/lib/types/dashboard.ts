@@ -63,25 +63,6 @@ export interface CardSpendingDataPoint {
   color: string
 }
 
-export interface CompletingInstallment {
-  id: string
-  description: string
-  amountArs: number | null
-  amountUsd: number | null
-  currentInstallment: number
-  totalInstallments: number
-  cardId: string | null
-  customName: string | null
-  lastFourDigits: string | null
-}
-
-export interface CompletingInstallmentsResponse {
-  statementMonth: string
-  installments: CompletingInstallment[]
-  totalArs: number
-  totalUsd: number
-}
-
 // Helper to format end month display (e.g., "Jan 2026")
 // Note: monthNames should be the short month names array from useMonthNamesShort()
 export const formatEndMonth = (endMonth: EndMonth, monthNames: string[]): string => {
