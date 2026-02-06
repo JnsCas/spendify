@@ -57,7 +57,7 @@ export function useBulkUpload() {
     const activeItems = items.filter(
       (item) => !['completed', 'failed'].includes(item.status)
     )
-    const currentCount = activeItems.length + localFiles.length
+    const currentCount = activeItems.length
     const availableSlots = MAX_FILES - currentCount
 
     if (availableSlots <= 0) {
@@ -98,7 +98,7 @@ export function useBulkUpload() {
       setLocalFiles((prev) => [...prev, ...newLocalFiles])
       addItems(newItems)
     }
-  }, [items.length, localFiles.length, addItems, setError, clearDuplicates])
+  }, [items.length, addItems, setError, clearDuplicates])
 
   const removeFile = useCallback((localId: string) => {
     setLocalFiles((prev) => prev.filter((f) => f.localId !== localId))
