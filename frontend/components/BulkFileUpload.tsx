@@ -55,9 +55,28 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
   }
 
   const handleNewFiles = (newFiles: File[]) => {
-    // Add files to pending redaction queue
-    const pending: PendingFile[] = newFiles.map((file) => ({
-      id: `pending-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    // Validate files before adding to redaction queue
+    const validFiles: File[] = []
+    const invalidFiles: string[] = []
+
+    newFiles.forEach((file) => {
+      if (file.type !== 'application/pdf') {
+        invalidFiles.push(`${file.name}: Only PDF files are allowed`)
+      } else {
+        validFiles.push(file)
+      }
+    })
+
+    // Show errors for invalid files
+    if (invalidFiles.length > 0) {
+      // Use the addFiles validation to show errors (it will reject them)
+      addFiles(newFiles)
+      return
+    }
+
+    // Add valid files to pending redaction queue
+    const pending: PendingFile[] = validFiles.map((file) => ({
+      id: `pending-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
       file,
     }))
     setPendingFiles((prev) => [...prev, ...pending])
