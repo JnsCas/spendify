@@ -1,8 +1,21 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import BulkFileUpload from '@/components/BulkFileUpload'
+import dynamic from 'next/dynamic'
 import { useTranslations } from '@/lib/i18n'
+
+// Dynamically import BulkFileUpload with ssr: false to avoid PDF library issues during build
+const BulkFileUpload = dynamic(() => import('@/components/BulkFileUpload'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center rounded-lg border border-gray-200 bg-white p-12">
+      <div className="text-center">
+        <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"></div>
+        <p className="mt-4 text-sm text-gray-600">Loading...</p>
+      </div>
+    </div>
+  ),
+})
 
 export default function ImportPage() {
   const router = useRouter()
