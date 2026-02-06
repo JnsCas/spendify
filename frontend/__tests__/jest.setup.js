@@ -64,3 +64,36 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: jest.fn(),
   })),
 })
+
+// Mock pdfjs-dist - used by PdfRedactor component
+jest.mock('pdfjs-dist', () => ({
+  __esModule: true,
+  default: {},
+  GlobalWorkerOptions: {
+    workerSrc: '',
+  },
+  getDocument: jest.fn(() => ({
+    promise: Promise.resolve({
+      numPages: 1,
+      getPage: jest.fn(() => Promise.resolve({
+        getViewport: jest.fn(() => ({ width: 800, height: 600 })),
+        render: jest.fn(() => ({ promise: Promise.resolve() })),
+      })),
+    }),
+  })),
+}))
+
+// Mock pdf-lib - used by PdfRedactor component
+jest.mock('pdf-lib', () => ({
+  __esModule: true,
+  PDFDocument: {
+    load: jest.fn(() => Promise.resolve({
+      getPages: jest.fn(() => [{
+        getSize: jest.fn(() => ({ width: 800, height: 600 })),
+        drawRectangle: jest.fn(),
+      }]),
+      save: jest.fn(() => Promise.resolve(new Uint8Array())),
+    })),
+  },
+  rgb: jest.fn(() => ({ r: 0, g: 0, b: 0 })),
+}))

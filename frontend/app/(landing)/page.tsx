@@ -3,6 +3,7 @@
 import { LandingHeader } from '@/components/landing/LandingHeader'
 import { HeroSection } from '@/components/landing/HeroSection'
 import { HowItWorksSection } from '@/components/landing/HowItWorksSection'
+import { SecuritySection } from '@/components/landing/SecuritySection'
 import { FeaturesSection } from '@/components/landing/FeaturesSection'
 import { CTASection } from '@/components/landing/CTASection'
 import { LandingFooter } from '@/components/landing/LandingFooter'
@@ -13,6 +14,7 @@ export default function LandingPage() {
       <LandingHeader />
       <HeroSection />
       <HowItWorksSection />
+      <SecuritySection />
       <FeaturesSection />
       <CTASection />
       <LandingFooter />
