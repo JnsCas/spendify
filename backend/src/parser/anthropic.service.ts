@@ -82,7 +82,12 @@ PARSING RULES:
    - DD-Mmm-YY or "DD Mmm YY" → parse day, month, year exactly as shown
    - Spanish months: Ene=01, Feb=02, Mar=03, Abr=04, May=05, Jun=06, Jul=07, Ago=08, Sep=09, Oct=10, Nov=11, Dic=12
    - CRITICAL: Parse dates EXACTLY - "24 Dic 25" = 2025-12-24 (day=24), "05 Ene 26" = 2026-01-05 (day=05)
-   - For due_date/statement_date, look for "CIERRE ACTUAL", "VENCIMIENTO", "VENCIMIENTO ACTUAL" fields
+
+   SUMMARY DATES (in header section of statement):
+   - due_date: Look for "VENCIMIENTO ACTUAL" or "VENCIMIENTO" → extract and convert to YYYY-MM-DD
+     Examples: "VENCIMIENTO ACTUAL 06-Feb-26" → "2026-02-06", "VENCIMIENTO 15-Ene-26" → "2026-01-15"
+   - statement_date: Look for "CIERRE ACTUAL" or "CIERRE" → extract and convert to YYYY-MM-DD
+     Examples: "CIERRE ACTUAL 29-Ene-26" → "2026-01-29", "CIERRE 20-Dic-25" → "2025-12-20"
 
 3. INSTALLMENTS:
    - "Cuota XX/YY" or "C.XX/YY" → current_installment=XX, total_installments=YY

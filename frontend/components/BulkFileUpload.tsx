@@ -3,14 +3,24 @@
 import { useRef, useState } from 'react'
 import { useBulkUpload } from '@/hooks/useBulkUpload'
 import UploadProgressItem from './UploadProgressItem'
+import PdfRedactor from './PdfRedactor'
+import { useTranslations } from '@/lib/i18n'
 
 interface BulkFileUploadProps {
   onComplete?: () => void
 }
 
+interface PendingFile {
+  id: string
+  file: File
+}
+
 export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
+  const t = useTranslations()
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragActive, setDragActive] = useState(false)
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([])
+  const [currentRedactionFile, setCurrentRedactionFile] = useState<PendingFile | null>(null)
 
   const {
     files,
@@ -32,16 +42,69 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
     e.preventDefault()
     setDragActive(false)
     const droppedFiles = Array.from(e.dataTransfer.files)
-    addFiles(droppedFiles)
+    handleNewFiles(droppedFiles)
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files ? Array.from(e.target.files) : []
-    addFiles(selectedFiles)
+    handleNewFiles(selectedFiles)
     // Reset input so same files can be selected again
     if (inputRef.current) {
       inputRef.current.value = ''
     }
+  }
+
+  const handleNewFiles = (newFiles: File[]) => {
+    // Add files to pending redaction queue
+    const pending: PendingFile[] = newFiles.map((file) => ({
+      id: `pending-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      file,
+    }))
+    setPendingFiles((prev) => [...prev, ...pending])
+
+    // Auto-start redaction for first file if not already redacting
+    if (!currentRedactionFile && pending.length > 0) {
+      setCurrentRedactionFile(pending[0])
+    }
+  }
+
+  const handleRedactionComplete = (redactedFile: File) => {
+    if (!currentRedactionFile) return
+
+    // Remove from pending
+    setPendingFiles((prev) => prev.filter((f) => f.id !== currentRedactionFile.id))
+
+    // Add redacted file to upload queue
+    addFiles([redactedFile])
+
+    // Move to next pending file
+    const remaining = pendingFiles.filter((f) => f.id !== currentRedactionFile.id)
+    setCurrentRedactionFile(remaining.length > 0 ? remaining[0] : null)
+  }
+
+  const handleSkipRedaction = () => {
+    if (!currentRedactionFile) return
+
+    // Remove from pending
+    setPendingFiles((prev) => prev.filter((f) => f.id !== currentRedactionFile.id))
+
+    // Add original file to upload queue
+    addFiles([currentRedactionFile.file])
+
+    // Move to next pending file
+    const remaining = pendingFiles.filter((f) => f.id !== currentRedactionFile.id)
+    setCurrentRedactionFile(remaining.length > 0 ? remaining[0] : null)
+  }
+
+  const handleCancelRedaction = () => {
+    if (!currentRedactionFile) return
+
+    // Remove from pending
+    setPendingFiles((prev) => prev.filter((f) => f.id !== currentRedactionFile.id))
+
+    // Move to next pending file
+    const remaining = pendingFiles.filter((f) => f.id !== currentRedactionFile.id)
+    setCurrentRedactionFile(remaining.length > 0 ? remaining[0] : null)
   }
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -55,8 +118,39 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
 
   return (
     <div className="space-y-4">
-      {/* Drop zone */}
-      <div
+      {/* Redaction UI - shown when there's a file pending redaction */}
+      {currentRedactionFile && (
+        <div className="rounded-lg border border-gray-200 bg-white">
+          <div className="border-b border-gray-100 px-6 py-4">
+            <h2 className="text-lg font-semibold text-gray-900">
+              {t('import.redaction.title')}
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              {t('import.redaction.fileName', { name: currentRedactionFile.file.name })}
+              {pendingFiles.length > 1 && (
+                <span className="ml-2 text-gray-400">
+                  {t('import.redaction.fileProgress', {
+                    current: pendingFiles.findIndex(f => f.id === currentRedactionFile.id) + 1,
+                    total: pendingFiles.length
+                  })}
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="p-6">
+            <PdfRedactor
+              file={currentRedactionFile.file}
+              onRedacted={handleRedactionComplete}
+              onSkip={handleSkipRedaction}
+              onCancel={handleCancelRedaction}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Drop zone - hidden when redacting */}
+      {!currentRedactionFile && (
+        <div
         className={`rounded-lg border-2 border-dashed p-8 text-center transition-all ${
           dragActive
             ? 'border-blue-400 bg-blue-50'
@@ -96,21 +190,22 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
 
           <div>
             <p className="mb-3 text-sm text-gray-600">
-              Drag and drop your credit card statement PDFs here, or
+              {t('import.bulk.dragDropText')}
             </p>
             <button
               onClick={() => inputRef.current?.click()}
               className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
             >
-              Browse Files
+              {t('import.bulk.browseFiles')}
             </button>
           </div>
 
           <p className="text-xs text-gray-400">
-            PDF files only, max 500KB each, up to 12 files
+            {t('import.bulk.fileRestrictions')}
           </p>
         </div>
       </div>
+      )}
 
       {/* Error message */}
       {uploadError && (
@@ -126,13 +221,12 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
             <svg className="h-5 w-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
-            <span className="text-sm font-medium text-amber-800">Duplicate Files Skipped</span>
+            <span className="text-sm font-medium text-amber-800">{t('import.bulk.duplicatesSkipped')}</span>
           </div>
           <ul className="space-y-1 text-sm text-amber-700">
             {duplicates.map((dup, index) => (
               <li key={index}>
-                <span className="font-medium">{dup.originalFilename}</span> is a duplicate of{' '}
-                <span className="font-medium">{dup.existingFilename}</span>
+                {t('import.bulk.duplicateMessage', { original: dup.originalFilename, existing: dup.existingFilename })}
               </li>
             ))}
           </ul>
@@ -144,14 +238,14 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
         <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-4">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-medium text-gray-900">
-              Files ({files.length})
+              {t('import.bulk.filesCount', { count: files.length })}
             </h3>
             {!isUploading && (
               <button
                 onClick={clearAll}
                 className="text-xs text-gray-500 transition-colors hover:text-red-500"
               >
-                Clear all
+                {t('import.bulk.clearAll')}
               </button>
             )}
           </div>
@@ -182,7 +276,7 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
                   : 'cursor-not-allowed bg-gray-100 text-gray-400'
               }`}
             >
-              {isUploading ? 'Uploading...' : 'Start Import'}
+              {isUploading ? t('import.bulk.uploading') : t('import.bulk.startImport')}
             </button>
           )}
 
@@ -191,7 +285,7 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
               onClick={onComplete}
               className="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700"
             >
-              View Dashboard
+              {t('import.bulk.viewDashboard')}
             </button>
           )}
         </div>
@@ -239,7 +333,7 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
                 failedCount > 0 ? 'text-amber-800' : 'text-emerald-800'
               }`}
             >
-              Import Complete
+              {t('import.bulk.importComplete')}
             </span>
           </div>
           <p
@@ -247,8 +341,8 @@ export default function BulkFileUpload({ onComplete }: BulkFileUploadProps) {
               failedCount > 0 ? 'text-amber-700' : 'text-emerald-700'
             }`}
           >
-            {successCount} of {files.length} files processed successfully
-            {failedCount > 0 && `. ${failedCount} failed - click retry to try again.`}
+            {t('import.bulk.successMessage', { successCount, total: files.length })}
+            {failedCount > 0 && `. ${t('import.bulk.failedMessage', { failedCount })}`}
           </p>
         </div>
       )}
